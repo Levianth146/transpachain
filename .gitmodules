@@ -1,0 +1,14 @@
+[submodule "contracts"]
+	path = contracts
+	url = https://github.com/Levianth146/transpachain-contracts.git
+	branch = main
+
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/Levianth146/transpachain-frontend.git
+	branch = main
+
+[submodule "backend"]
+	path = backend
+	url = https://github.com/Levianth146/transpachain-backend.git
+	branch = main

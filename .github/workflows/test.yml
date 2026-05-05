@@ -1,0 +1,35 @@
+name: Contracts Test
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["contracts/**"]
+  pull_request:
+    branches: [main]
+    paths: ["contracts/**"]
+
+jobs:
+  foundry-test:
+    name: Foundry Unit & Fuzz Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install OZ dependencies
+        working-directory: contracts
+        run: forge install OpenZeppelin/openzeppelin-contracts --no-git
+
+      - name: Run Foundry tests
+        working-directory: contracts
+        run: forge test -vvv
+
+      - name: Run Fuzz tests
+        working-directory: contracts
+        run: forge test --match-path "test/fuzz/**" -vvv
+        env:
+          FOUNDRY_PROFILE: ci
