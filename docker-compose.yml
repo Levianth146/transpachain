@@ -1,12 +1,8 @@
-version: "3.9"
-
 services:
   mongodb:
     image: mongo:7.0
     container_name: transpachain-mongo
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     environment:
@@ -14,31 +10,51 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: /root/projects/transpachain-backend
       dockerfile: Dockerfile
     container_name: transpachain-backend
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     depends_on:
       - mongodb
-    env_file:
-      - ./backend/.env
     environment:
       MONGODB_URI: mongodb://mongodb:27017/transpachain
+      PORT: "3001"
+      ALCHEMY_SEPOLIA_URL: ${ALCHEMY_SEPOLIA_URL}
+      CHARITY_CORE_ADDRESS: ${CHARITY_CORE_ADDRESS}
+      DONATION_VAULT_ADDRESS: ${DONATION_VAULT_ADDRESS}
+      GOVERNANCE_DAO_ADDRESS: ${GOVERNANCE_DAO_ADDRESS}
+      IMPACT_NFT_ADDRESS: ${IMPACT_NFT_ADDRESS}
+      PINATA_API_KEY: ${PINATA_API_KEY}
+      PINATA_SECRET_KEY: ${PINATA_SECRET_KEY}
+      CORS_ORIGIN: http://localhost
 
   frontend:
     build:
-      context: ./frontend
+      context: /root/projects/transpachain-frontend
       dockerfile: Dockerfile
     container_name: transpachain-frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./frontend/.env.local
     depends_on:
       - backend
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://localhost/api
+      NEXT_PUBLIC_ALCHEMY_KEY: ${NEXT_PUBLIC_ALCHEMY_KEY}
+      NEXT_PUBLIC_CHARITY_CORE_ADDRESS: ${NEXT_PUBLIC_CHARITY_CORE_ADDRESS}
+      NEXT_PUBLIC_DONATION_VAULT_ADDRESS: ${NEXT_PUBLIC_DONATION_VAULT_ADDRESS}
+      NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS: ${NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS}
+      NEXT_PUBLIC_IMPACT_NFT_ADDRESS: ${NEXT_PUBLIC_IMPACT_NFT_ADDRESS}
+
+  nginx:
+    image: nginx:alpine
+    container_name: transpachain-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
   mongo_data:
