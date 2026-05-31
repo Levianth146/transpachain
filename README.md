@@ -26,8 +26,8 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    Frontend (Next.js)                │
-│         wagmi v2 / viem / TailwindCSS               │
+│                   Frontend (Next.js)                │
+│             wagmi v2 / viem / TailwindCSS           │
 └──────────────────┬──────────────────────────────────┘
                    │ HTTP / WebSocket
         ┌──────────┴──────────┐
