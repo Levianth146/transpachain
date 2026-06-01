@@ -9,9 +9,7 @@ services:
       MONGO_INITDB_DATABASE: transpachain
 
   backend:
-    build:
-      context: /root/projects/transpachain-backend
-      dockerfile: Dockerfile
+    image: cuongnguyen146/transpachain-backend:latest
     container_name: transpachain-backend
     restart: unless-stopped
     depends_on:
@@ -29,9 +27,7 @@ services:
       CORS_ORIGIN: http://localhost
 
   frontend:
-    build:
-      context: /root/projects/transpachain-frontend
-      dockerfile: Dockerfile
+    image: cuongnguyen146/transpachain-frontend:latest
     container_name: transpachain-frontend
     restart: unless-stopped
     depends_on:
@@ -50,8 +46,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
       - frontend
