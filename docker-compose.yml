@@ -25,6 +25,7 @@ services:
       PINATA_API_KEY: ${PINATA_API_KEY}
       PINATA_SECRET_KEY: ${PINATA_SECRET_KEY}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://transpachain.site}
+      DEPLOY_FROM_BLOCK: ${DEPLOY_FROM_BLOCK:-}
 
   frontend:
     image: cuongnguyen146/transpachain-frontend:latest

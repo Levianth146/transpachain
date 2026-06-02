@@ -40,6 +40,7 @@ jobs:
             NEXT_PUBLIC_DONATION_VAULT_ADDRESS=${{ secrets.NEXT_PUBLIC_DONATION_VAULT_ADDRESS }}
             NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS=${{ secrets.NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS }}
             NEXT_PUBLIC_IMPACT_NFT_ADDRESS=${{ secrets.NEXT_PUBLIC_IMPACT_NFT_ADDRESS }}
+            NEXT_PUBLIC_USDC_ADDRESS=${{ secrets.NEXT_PUBLIC_USDC_ADDRESS }}
 
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.2.2
