@@ -44,9 +44,17 @@ Workflow: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 ```bash
 cd ~/transpachain
 git pull && git submodule update --init --recursive
-docker compose pull   # if using prebuilt images from CI
-# OR docker compose build frontend
-docker compose up -d
+set -a && source .env && set +a
+docker compose build --no-cache frontend
+docker compose up -d --force-recreate frontend
+```
+
+Requires `postcss.config.js` in the frontend submodule (Tailwind). After deploy, verify CSS is compiled (not raw `@tailwind`):
+
+```bash
+curl -s https://transpachain.site | grep -oE '/_next/static/[^"]+\.css' | head -1
+curl -s "https://transpachain.site/<that-path>" | head -c 80   # should NOT contain @tailwind
+curl -I https://transpachain.site/logo.svg                      # expect 200
 ```
 
 ## Health check
