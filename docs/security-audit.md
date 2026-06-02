@@ -1,34 +1,67 @@
 # TranspaChain — Security Analysis
 
-## Risks Mitigated
+Testnet (Sepolia) self-assessment. Not a substitute for a professional third-party audit.
+
+## Automated analysis (Slither)
+
+From `transpachain-contracts`:
+
+```bash
+pip install slither-analyzer
+cd contracts
+slither src/ --exclude-dependencies
+```
+
+Document findings below after each run. Re-run before major demos.
+
+### Latest checklist
+
+| Check | Status |
+|-------|--------|
+| ReentrancyGuard on value transfers | Implemented |
+| Custom errors library (`Errors.sol`) | Added for gas / clarity |
+| 282+ Foundry tests | Run `make contracts-test` |
+| Slither on src/ | Run locally before release |
+
+## Risks mitigated
 
 | Risk | Solution |
-|---|---|
-| Reentrancy attack | `ReentrancyGuard` on all ETH-moving functions |
-| Push vs Pull payment | Pull pattern — donors call `claimRefund()` |
-| Flash loan governance | Voting power = donation at time of donate, not vote |
-| Integer overflow | Solidity ^0.8 built-in overflow protection |
-| Spam campaigns | Minimum ETH deposit to create campaign |
-| Org bypassing governance | `releaseMilestoneFunds` callable only by GovernanceDAO |
-| Admin rug-pull | Admin can only pause — cannot withdraw funds |
-| IPFS link rot | Store CID on-chain, not HTTP URL |
-| Timelock bypass | 24h delay before proposal execution |
+|------|----------|
+| Reentrancy | `ReentrancyGuard` on DonationVault |
+| Push refunds | Pull pattern — `claimRefund()` |
+| Flash-loan voting | Voting power from donation at snapshot |
+| Overflow | Solidity ^0.8 |
+| Spam campaigns | Creation deposit on `createCampaign` |
+| Org bypassing DAO | `releaseMilestoneFunds` only callable by GovernanceDAO |
+| Admin fund theft | Admin cannot drain escrow (only pause / fee config) |
+| Timelock bypass | 24h `executeAfter` on queued proposals |
 
-## Known Limitations (v1 Scope)
+## Known limitations
 
 **On-chain:**
-- Voting power proportional to ETH — whale risk
-- No KYC for charity orgs
-- High gas when many donors vote simultaneously
-- 3-day voting period slow for emergencies
+
+- Voting power proportional to donation size (whale influence)
+- No KYC for organizations
+- Voting period ~3 days (block-based) — slow for emergencies
+- Impact NFTs are transferable ERC-721 on testnet
 
 **Off-chain:**
-- Backend indexer is single point of failure (add replica in v2)
-- IPFS availability depends on Pinata pin service
-- Only MetaMask supported (no WalletConnect in v1)
 
-**Out of scope for v1:**
-- ERC-20 token donations (ETH only)
-- Cross-chain support
-- Mobile app
-- Fiat on-ramp
+- Indexer is a single process — use `DEPLOY_FROM_BLOCK` backfill + MongoDB backups
+- IPFS via Pinata — pin permanence depends on pinning service
+- MetaMask-first UX (WalletConnect optional future work)
+
+**Scope:**
+
+- ETH and USDC on Sepolia only
+- No mainnet deployment in this repository phase
+
+## Custom errors (Phase 4)
+
+Library: [`transpachain-contracts/src/Errors.sol`](../transpachain-contracts/src/Errors.sol)
+
+Migrate `require(..., "string")` to `revert TranspaChainErrors.*()` on contract redeploy to save gas and improve tooling.
+
+## Disclaimer
+
+Use `/legal` on the frontend. Do not present testnet badges or contracts as regulated financial products.

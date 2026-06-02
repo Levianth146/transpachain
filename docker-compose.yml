@@ -24,7 +24,7 @@ services:
       IMPACT_NFT_ADDRESS: ${IMPACT_NFT_ADDRESS}
       PINATA_API_KEY: ${PINATA_API_KEY}
       PINATA_SECRET_KEY: ${PINATA_SECRET_KEY}
-      CORS_ORIGIN: http://localhost
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://transpachain.site}
 
   frontend:
     image: cuongnguyen146/transpachain-frontend:latest
