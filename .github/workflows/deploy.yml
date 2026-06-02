@@ -34,6 +34,12 @@ jobs:
           context: ./frontend
           push: true
           tags: cuongnguyen146/transpachain-frontend:latest
+          build-args: |
+            NEXT_PUBLIC_ALCHEMY_KEY=${{ secrets.NEXT_PUBLIC_ALCHEMY_KEY }}
+            NEXT_PUBLIC_CHARITY_CORE_ADDRESS=${{ secrets.NEXT_PUBLIC_CHARITY_CORE_ADDRESS }}
+            NEXT_PUBLIC_DONATION_VAULT_ADDRESS=${{ secrets.NEXT_PUBLIC_DONATION_VAULT_ADDRESS }}
+            NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS=${{ secrets.NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS }}
+            NEXT_PUBLIC_IMPACT_NFT_ADDRESS=${{ secrets.NEXT_PUBLIC_IMPACT_NFT_ADDRESS }}
 
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.2.2
