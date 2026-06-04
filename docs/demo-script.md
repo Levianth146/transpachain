@@ -4,7 +4,7 @@
 **Network:** Ethereum Sepolia  
 **Admin wallet:** connect wallet with `ADMIN_ROLE` on CharityCore
 
-## Contracts (Sepolia)
+## Contracts (Sepolia — current deploy)
 
 | Contract | Address |
 |----------|---------|
@@ -13,36 +13,76 @@
 | GovernanceDAO | `0x558e7811ae467f82A60E5c6FEa7aaeAae61f2c44` |
 | ImpactNFT | `0x6B6e671EfB7fbEaBF41a7cCC4683F3683c88e5fd` |
 
-## Minute 0–1: Homepage
+> After redeploy, update addresses in `.env` and this table.
 
-- Show hero stats (campaigns, ETH donated, donors) — indexed from chain events.
-- Explain: milestone escrow + donor voting, not instant withdrawal by org.
+---
 
-## Minute 1–2: Admin (optional)
+## Six demo flows (pick 2–3 per session)
 
-- Open **Admin** tab → verify org wallet address.
-- Mention `VERIFIER_ROLE` can verify without full admin.
+### Flow 1 — ETH donate + Impact NFT
 
-## Minute 2–3: Campaign
+1. Homepage stats (indexed donations).
+2. Open **Active** campaign → **Escrow Vault** card (funds locked).
+3. **Donate** ETH → MetaMask Sepolia → Impact NFT mint.
+4. Etherscan tx link from wallet history.
 
-- Open a campaign → progress bar, milestones, payment token (ETH or USDC).
-- **Donate** — show MetaMask on Sepolia; mention Impact NFT on first donation.
-- If campaign failed/expired → show **Claim refund** panel.
+### Flow 2 — USDC donate
 
-## Minute 3–4: Governance
+1. Campaign with `paymentToken = USDC`.
+2. Approve USDC → `donateUSDC` in modal.
+3. Escrow holds USDC until milestone release.
 
-- Org submits milestone proof (or show existing proposal).
-- Donor **Vote** on governance panel.
-- Explain timelock before funds move to org.
+### Flow 3 — Milestone pass (DAO)
 
-## Minute 4–5: Transparency
+1. Org wallet: **Organization actions** → submit milestone proof (IPFS CID).
+2. **Governance** nav → see proposal; or campaign **Voting** panel.
+3. Donor votes **For** → **Queue** → wait timelock → **Execute & Release Funds**.
+4. Milestone timeline shows **Released**.
 
-- Link Etherscan tx for last donation.
-- Mention MongoDB indexer + IPFS metadata (Pinata).
-- Close with testnet disclaimer (`/legal`).
+### Flow 4 — Milestone fail
+
+1. Vote **Against** or miss 51% quorum → proposal **Defeated**.
+2. Org can resubmit on-chain (`resubmitProposal` — UI optional).
+3. Explain escrow unchanged until a proposal passes.
+
+### Flow 5 — Refund
+
+1. Campaign misses goal → org/anyone **Finalize** → status **Failed**.
+2. Donor **Claim refund** — proportional if partial milestones released.
+3. **Escrow** card shows eligibility.
+
+### Flow 6 — Cancel (zero donors)
+
+1. New campaign, no donations.
+2. Org **Cancel** — status Cancelled.
+3. Contrast with failed + refund path.
+
+---
+
+## Minute-by-minute (5 min)
+
+| Time | Action |
+|------|--------|
+| 0–1 | Homepage + **Governance** hub overview |
+| 1–2 | **Dashboard** org profile (off-chain) → **Admin** verify on-chain |
+| 2–3 | Campaign: escrow card + donate (Flow 1 or 2) |
+| 3–4 | Org submit proof + donor vote (Flow 3) |
+| 4–5 | Etherscan + `/legal` testnet disclaimer |
+
+---
+
+## Admin / verifier
+
+- **Admin** tab: verify org address (`verifyOrg`).
+- **Organization applications**: review off-chain profile first.
+- **VERIFIER_ROLE**: same verify UI; tab Admin visible after frontend deploy.
+
+---
 
 ## Backup talking points
 
-- Repeat donation can upgrade NFT tier.
-- USDC path: approve then `donateUSDC`.
-- Backend API: `/api/campaigns`, WebSocket live updates on homepage.
+- Escrow ÷ remaining milestones = release amount per proof.
+- 1% platform fee to treasury on donate.
+- WebSocket live updates on homepage.
+- **Repeat donate NFT tier upgrade** — requires contract redeploy (`63300f6`).
+- MongoDB seed for portfolio: `npm run seed` in backend (dev only).
