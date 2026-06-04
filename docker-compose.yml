@@ -26,6 +26,7 @@ services:
       PINATA_SECRET_KEY: ${PINATA_SECRET_KEY}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://transpachain.site}
       DEPLOY_FROM_BLOCK: ${DEPLOY_FROM_BLOCK:-}
+      INDEXER_LOG_CHUNK_SIZE: ${INDEXER_LOG_CHUNK_SIZE:-10}
 
   frontend:
     image: cuongnguyen146/transpachain-frontend:latest

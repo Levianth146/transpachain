@@ -109,8 +109,10 @@ So với `.env.example`, đảm bảo có (điền giá trị thật nếu thi�
 CORS_ORIGIN=https://transpachain.site
 ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 
-# Indexer backfill — block deploy contract Sepolia (xem Etherscan tx deploy)
+# Indexer backfill — block deploy contract Sepolia (xem Etherscan tx deploy). 0 = tắt.
 DEPLOY_FROM_BLOCK=
+# Alchemy Free: eth_getLogs tối đa ~10 block/lần (mặc định backend đã chunk)
+INDEXER_LOG_CHUNK_SIZE=10
 
 # USDC donate trên frontend (Sepolia Circle USDC)
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
