@@ -39,6 +39,11 @@
 3. Donor votes **For** → **Queue** → wait timelock → **Execute & Release Funds**.
 4. Milestone timeline shows **Released**.
 
+> **Demo placeholder CIDs:** The Hardhat demo script (`contracts/hardhat/scripts/demo.ts`) submits
+> `QmMilestone0ProofCID` — a fake CID for on-chain flow testing, not pinned on IPFS. The governance
+> UI shows “Demo proof” instead of a broken IPFS link. For a real demo, upload evidence via Pinata
+> (or backend `/ipfs/upload`) and submit the returned CID.
+
 ### Flow 4 — Milestone fail
 
 1. Vote **Against** or miss 51% quorum → proposal **Defeated**.
