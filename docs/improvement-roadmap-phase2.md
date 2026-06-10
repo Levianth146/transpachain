@@ -1,6 +1,6 @@
 # TranspaChain — Roadmap Phase 2 (P0–P2)
 
-Extension after the original 4-week plan. **Contract redeploy** is deferred until after UI/backend/demo work; see [deploy.md](./deploy.md#redeploy-contract-sepolia-tùy-chọn).
+Extension after the original 4-week plan. **Contract redeploy** is deferred until after UI/backend/demo work; see [deploy.md](./deploy.md#redeploy-contract-sepolia-optional).
 
 ## P0 — Demo trust (implemented in repo)
 

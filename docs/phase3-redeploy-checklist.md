@@ -1,21 +1,21 @@
 # Phase 3 — Redeploy & deploy checklist
 
-## Cần redeploy contracts (Sepolia)
+## Contracts to redeploy (Sepolia)
 
 ### ImpactNFT — tier badge metadata
-- `setTierMetadataCID(Bronze|Silver|Gold, ipfsCid)` — 3 JSON metadata trên IPFS
-- `mintImpactNFT` / `upgradeTier` dùng tier URI thay vì campaign `metadataCID`
-- Sau deploy: pin metadata qua Pinata (xem `backend/scripts/` hoặc upload thủ công)
+- `setTierMetadataCID(Bronze|Silver|Gold, ipfsCid)` — 3 JSON metadata files on IPFS
+- `mintImpactNFT` / `upgradeTier` use tier URI instead of campaign `metadataCID`
+- After deploy: pin metadata via Pinata (see `backend/scripts/` or upload manually)
 
-**Bước sau redeploy:**
+**Steps after redeploy:**
 ```bash
-# Owner gọi trên ImpactNFT
+# Owner calls on ImpactNFT
 setTierMetadataCID(0, "QmBronzeMetadata...")
 setTierMetadataCID(1, "QmSilverMetadata...")
 setTierMetadataCID(2, "QmGoldMetadata...")
 ```
 
-Metadata JSON mẫu:
+Sample metadata JSON:
 ```json
 {
   "name": "TranspaChain Bronze Donor Badge",
@@ -24,28 +24,28 @@ Metadata JSON mẫu:
 }
 ```
 
-### Không bắt buộc redeploy (đã xử lý off-chain / FE)
-- DAO admin duyệt proposal trước khi hiện Governance (`approvalStatus` trong Mongo)
-- Minh chứng upload (`/evidence`)
+### No redeploy required (handled off-chain / FE)
+- DAO admin approves proposals before they appear in Governance (`approvalStatus` in Mongo)
+- Evidence upload (`/evidence`)
 - On-chain checking panel (read contract)
 - Tx hash → SepoliaScan
 - Web3 hero UI
 
 ## Backend deploy
-- Rebuild image sau khi pull: Evidence model, admin proposal/evidence routes, proposal `approvalStatus`
-- **Một lần trên EC2** — approve proposal demo cũ:
+- Rebuild image after pull: Evidence model, admin proposal/evidence routes, proposal `approvalStatus`
+- **One-time on EC2** — approve old demo proposals:
 ```javascript
 db.proposals.updateMany({}, { $set: { approvalStatus: "approved" } })
 ```
 
 ## Frontend deploy
-- Build trên WSL → `docker push` → EC2 `docker pull` (không build trên EC2 1GB RAM)
+- Build on WSL → `docker push` → EC2 `docker pull` (do not build on EC2 with 1GB RAM)
 
 ## Demo Q&A
 
-| Câu hỏi | Trả lời |
-|----------|---------|
-| NFT ví xấu? | Redeploy + set tier CIDs; MetaMask cần metadata chuẩn ERC721 |
-| 4 campaign 4 NFT? | Đúng — 1 badge/campaign; dashboard đọc `getDonorNFTs()` |
-| Proposal không vote được? | Admin phải Approve trong Admin panel trước |
-| Minh chứng ở đâu? | Org upload → admin duyệt → hiện trên campaign detail |
+| Question | Answer |
+|----------|--------|
+| NFT looks bad in wallet? | Redeploy + set tier CIDs; MetaMask needs standard ERC721 metadata |
+| 4 campaigns = 4 NFTs? | Yes — 1 badge per campaign; dashboard reads `getDonorNFTs()` |
+| Cannot vote on proposal? | Admin must Approve in Admin panel first |
+| Where is evidence? | Org upload → admin approval → shown on campaign detail |

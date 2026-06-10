@@ -88,11 +88,11 @@ curl -s "https://transpachain.site/<that-path>" | head -c 80   # should NOT cont
 curl -I https://transpachain.site/logo.svg                      # expect 200
 ```
 
-## Hướng dẫn cập nhật EC2 (còn lại — chạy qua SSH)
+## EC2 update (detailed — run via SSH)
 
-Các bước dưới đây **bạn tự SSH vào EC2** và chạy copy-paste. Frontend đã deploy (CSS, logo OK).
+SSH into EC2 and run the steps below. Frontend should already be deployed (CSS, logo OK).
 
-### 1. Kéo code mới + submodule
+### 1. Pull latest code + submodules
 
 ```bash
 cd ~/transpachain
@@ -100,36 +100,36 @@ git pull origin main
 git submodule update --init --recursive
 ```
 
-### 2. Kiểm tra / bổ sung `.env` (thư mục gốc repo)
+### 2. Verify / update `.env` (repo root)
 
-So với `.env.example`, đảm bảo có (điền giá trị thật nếu thiếu):
+Compared to `.env.example`, ensure these are set (use real values if missing):
 
 ```bash
-# Bắt buộc cho production
+# Required for production
 CORS_ORIGIN=https://transpachain.site
 ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 
-# Indexer backfill — block deploy contract Sepolia (xem Etherscan tx deploy). 0 = tắt.
+# Indexer backfill — Sepolia contract deploy block (see Etherscan deploy tx). 0 = disabled.
 DEPLOY_FROM_BLOCK=
-# Alchemy Free: eth_getLogs tối đa ~10 block/lần (mặc định backend đã chunk)
+# Alchemy Free: eth_getLogs max ~10 blocks per request (backend chunks by default)
 INDEXER_LOG_CHUNK_SIZE=10
 
-# USDC donate trên frontend (Sepolia Circle USDC)
+# USDC donate on frontend (Sepolia Circle USDC)
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
-# Địa chỉ contract (giữ nguyên nếu chưa redeploy — xem mục Redeploy bên dưới)
+# Contract addresses (keep if not redeployed — see Redeploy section below)
 CHARITY_CORE_ADDRESS=0x6fEEF9276B2215F0d41a0c7515Ea6718099552d4
 DONATION_VAULT_ADDRESS=0x016377C129f1d7B0Abbda97B8676D273F419cBAb
 GOVERNANCE_DAO_ADDRESS=0x558e7811ae467f82A60E5c6FEa7aaeAae61f2c44
 IMPACT_NFT_ADDRESS=0x6B6e671EfB7fbEaBF41a7cCC4683F3683c88e5fd
 NEXT_PUBLIC_CHARITY_CORE_ADDRESS=...
 NEXT_PUBLIC_DONATION_VAULT_ADDRESS=...
-# (các NEXT_PUBLIC_* contract khác tương ứng)
+# (other matching NEXT_PUBLIC_* contract vars)
 ```
 
-### 3. Cập nhật Docker (backend pull từ Hub, không build local)
+### 3. Update Docker (backend pull from Hub, no local build)
 
-Backend **không có** `build:` trong compose — image do CI build/push. Trên EC2:
+Backend has **no** `build:` in compose — image is built/pushed by CI. On EC2:
 
 ```bash
 cd ~/transpachain
@@ -138,24 +138,24 @@ docker compose pull
 docker compose up -d --force-recreate backend frontend nginx
 ```
 
-Nếu CI chưa chạy xong, có thể build frontend local:
+If CI has not finished, you can build frontend locally:
 
 ```bash
 docker compose build --no-cache frontend
 docker compose up -d --force-recreate frontend
 ```
 
-### 4. Xác minh backend + indexer
+### 4. Verify backend + indexer
 
 ```bash
 docker compose logs backend --tail 80
 ```
 
-Kỳ vọng trong log:
+Expected in logs:
 
-- Server/API khởi động (port 3001)
-- `[Indexer]` lắng nghe events
-- Nếu `DEPLOY_FROM_BLOCK` > 0: thấy backfill historical (campaign/donation cũ)
+- Server/API started (port 3001)
+- `[Indexer]` listening for events
+- If `DEPLOY_FROM_BLOCK` > 0: historical backfill (older campaigns/donations)
 
 Health check:
 
@@ -163,38 +163,38 @@ Health check:
 curl -s https://transpachain.site/api/health
 ```
 
-### 5. Checklist demo live (5 phút)
+### 5. Live demo checklist (5 minutes)
 
-Theo [demo-script.md](./demo-script.md):
+Per [demo-script.md](./demo-script.md):
 
-- [ ] **Trang chủ** — stats (campaigns, ETH donated, donors); giải thích milestone escrow
-- [ ] **Admin** (tùy chọn) — tab Admin, verify org wallet; nhắc `VERIFIER_ROLE`
-- [ ] **Campaign** — progress bar, milestones, token ETH/USDC; donate MetaMask Sepolia → Impact NFT lần đầu
-- [ ] **Refund** — campaign failed/expired → panel Claim refund
-- [ ] **Governance** — milestone proof, donor Vote, timelock
-- [ ] **Minh bạch** — link Etherscan tx; indexer MongoDB + IPFS; disclaimer `/legal`
-- [ ] **Bonus** — repeat donate nâng tier NFT (cần contract redeploy mới); USDC approve + donate
+- [ ] **Homepage** — stats (campaigns, ETH donated, donors); explain milestone escrow
+- [ ] **Admin** (optional) — Admin tab, verify org wallet; mention `VERIFIER_ROLE`
+- [ ] **Campaign** — progress bar, milestones, ETH/USDC token; donate via MetaMask Sepolia → first Impact NFT
+- [ ] **Refund** — failed/expired campaign → Claim refund panel
+- [ ] **Governance** — milestone proof, donor vote, timelock
+- [ ] **Transparency** — Etherscan tx links; indexer MongoDB + IPFS; `/legal` disclaimer
+- [ ] **Bonus** — repeat donate upgrades NFT tier (requires new contract redeploy); USDC approve + donate
 
 ---
 
-## Redeploy contract Sepolia (tùy chọn)
+## Redeploy contract Sepolia (optional)
 
-**Có cần redeploy không?** — **Có**, nếu bạn muốn tính năng **NFT tier upgrade khi donate lại** (bytecode mới tại commit contracts `63300f6`). Contract hiện trên Sepolia deploy trước upgrade; frontend/backend vẫn chạy với địa chỉ cũ.
+**Do you need to redeploy?** — **Yes**, if you want **NFT tier upgrade on repeat donate** (new bytecode at contracts commit `63300f6`). Current Sepolia contracts were deployed before that upgrade; frontend/backend still run with the old addresses.
 
-**Không chạy deploy** nếu chưa set `DEPLOYER_PRIVATE_KEY` trong env.
+**Do not deploy** until `DEPLOYER_PRIVATE_KEY` is set in env.
 
-### Chuẩn bị (máy local hoặc EC2 có Foundry/Hardhat)
+### Prerequisites (local machine or EC2 with Foundry/Hardhat)
 
 Trong `contracts/` (submodule):
 
 ```bash
-# .env trong contracts/ hoặc export
-DEPLOYER_PRIVATE_KEY=0x...          # BẮT BUỘC — không commit
+# .env in contracts/ or export
+DEPLOYER_PRIVATE_KEY=0x...          # REQUIRED — do not commit
 USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-ETHERSCAN_API_KEY=...                # tùy chọn verify
+ETHERSCAN_API_KEY=...                # optional verify
 ```
 
-### Cách 1 — Foundry
+### Option 1 — Foundry
 
 ```bash
 cd contracts
@@ -204,24 +204,24 @@ forge script script/Deploy.s.sol:Deploy \
   -vvvv
 ```
 
-Ghi lại 4 địa chỉ in ra: CharityCore, ImpactNFT, GovernanceDAO, DonationVault.
+Record the 4 printed addresses: CharityCore, ImpactNFT, GovernanceDAO, DonationVault.
 
-### Cách 2 — Hardhat
+### Option 2 — Hardhat
 
 ```bash
 cd contracts
 npx hardhat run hardhat/scripts/deploy.ts --network sepolia
 ```
 
-Hoặc từ root: `make contracts-deploy`
+Or from root: `make contracts-deploy`
 
-### Sau redeploy
+### After redeploy
 
-1. Cập nhật **tất cả** env (root `.env`, GitHub secrets `NEXT_PUBLIC_*` + backend `CHARITY_*` / `DONATION_*` / …).
-2. Set `DEPLOY_FROM_BLOCK` = block deploy mới (Etherscan).
-3. Rebuild frontend (build-args mới) và push/pull image.
-4. `docker compose up -d --force-recreate backend` — indexer backfill từ block mới.
-5. Tạo campaign mới trên contract mới; dữ liệu cũ không migrate tự động.
+1. Update **all** env (root `.env`, GitHub secrets `NEXT_PUBLIC_*` + backend `CHARITY_*` / `DONATION_*` / …).
+2. Set `DEPLOY_FROM_BLOCK` = new deploy block (Etherscan).
+3. Rebuild frontend (new build-args) and push/pull image.
+4. `docker compose up -d --force-recreate backend` — indexer backfill from new block.
+5. Create new campaigns on the new contract; old data does not migrate automatically.
 
 ---
 
