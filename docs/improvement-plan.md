@@ -46,9 +46,9 @@ Official 4-week roadmap. Testnet (Sepolia) only — no mainnet scope.
 
 | Contract | Address |
 |----------|---------|
-| CharityCore | `0x6fEEF9276B2215F0d41a0c7515Ea6718099552d4` |
-| DonationVault | `0x016377C129f1d7B0Abbda97B8676D273F419cBAb` |
-| GovernanceDAO | `0x558e7811ae467f82A60E5c6FEa7aaeAae61f2c44` |
-| ImpactNFT | `0x6B6e671EfB7fbEaBF41a7cCC4683F3683c88e5fd` |
+| CharityCore | `0xA13344e56a2421322bb2985ffE37b07DB80B760d` |
+| DonationVault | `0x72116A0BCe20473FE1BfcC2da9D2337A6D39Ed5c` |
+| GovernanceDAO | `0x290770c85B42c3a32365f6f6350587878dCbe2D5` |
+| ImpactNFT | `0x17CcdcF683626B5c914640154464bF64Ca66DB18` |
 
 Live: https://transpachain.site
