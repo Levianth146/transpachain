@@ -102,10 +102,10 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 
 | Contract | Address |
 |---|---|
-| CharityCore | `0xA13344e56a2421322bb2985ffE37b07DB80B760d` |
-| DonationVault | `0x72116A0BCe20473FE1BfcC2da9D2337A6D39Ed5c` |
-| GovernanceDAO | `0x290770c85B42c3a32365f6f6350587878dCbe2D5` |
-| ImpactNFT | `0x17CcdcF683626B5c914640154464bF64Ca66DB18` |
+| CharityCore | `0x8a5e023b16ab13939260492dAe72a0be1E597e1a` |
+| DonationVault | `0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32` |
+| GovernanceDAO | `0xCcAEaF248E536850877B9f948cB237Fe7885b513` |
+| ImpactNFT | `0xD651d3531a44ee7941bFE257c79F41d274E180A6` |
 
 ### Test Coverage
 - **282 / 282 tests passing**
