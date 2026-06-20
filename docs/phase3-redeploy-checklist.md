@@ -52,6 +52,19 @@ cd transpachain-backend && git pull && npm ci && npm run build
 pm2 restart transpachain-backend   # or your process manager
 ```
 
+### Wipe stale Mongo data after redeploy (recommended)
+
+Old indexed donations/campaigns from a previous CharityCore address will otherwise linger until pruned.
+After updating `CHARITY_CORE_ADDRESS` and `DEPLOY_FROM_BLOCK`, clear collections and restart the backend so the indexer backfills from the new deploy block:
+
+```bash
+docker exec transpachain-mongo mongosh transpachain --eval 'db.donations.deleteMany({}); db.campaigns.deleteMany({});'
+# Then restart backend — historical sync runs from DEPLOY_FROM_BLOCK (e.g. 11102718)
+pm2 restart transpachain-backend
+```
+
+Alternatively run `npm run reconcile` on the backend — it prunes orphan campaigns and donations outside the current on-chain `totalCampaigns()` + `DEPLOY_FROM_BLOCK` scope.
+
 ## Verification checklist
 
 - [ ] Goal reached → donate reverts `Vault: goal reached`
