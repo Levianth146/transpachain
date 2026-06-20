@@ -1,3 +1,4 @@
+name: transpachain
 services:
   mongodb:
     image: mongo:7.0
