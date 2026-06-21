@@ -10,6 +10,8 @@ TranspaChain does **not** replace the blockchain. MongoDB is a **read-optimized 
 | `donations` | `DonationReceived` | Donor history, campaign donors |
 | `proposals` | `ProposalCreated`, vote/queue events | Governance UI |
 | `verifiedorgs` | `OrgVerified` | Admin verified org list |
+| `orgprofiles` | POST `/orgs` | Off-chain org applications (admin review) |
+| `evidence` | POST `/evidence` | Milestone evidence uploads (admin review) |
 
 See ER diagram: [er-diagram.md](./er-diagram.md).
 
@@ -78,15 +80,24 @@ docker exec transpachain-mongo mongodump --db transpachain --archive=/tmp/dump.g
 
 No application code changes — only `MONGODB_URI`.
 
-## Historical sync
+## Historical sync and `indexedScope`
 
 Set in backend `.env`:
 
 ```env
-DEPLOY_FROM_BLOCK=5000000
+DEPLOY_FROM_BLOCK=11102718
+INDEXER_LOG_CHUNK_SIZE=10
 ```
 
-On startup, indexer backfills events from that block before subscribing to live events. Adjust to your contract deploy block on Sepolia.
+On startup, indexer backfills events from that block before subscribing to live events. After backfill completes, set `DEPLOY_FROM_BLOCK=0` to skip on restart.
+
+The `indexedScope` module (`backend/src/lib/indexedScope.ts`) filters API queries to the **current deployment**:
+
+- Donations/proposals require `blockNumber >= DEPLOY_FROM_BLOCK` (when set)
+- Campaign IDs limited to `1..totalCampaigns()` from live CharityCore
+- `/campaigns/stats` donor counts use the same scope
+
+Orphan rows from prior redeploys can be pruned via `POST /api/admin/reconcile-campaigns`.
 
 ## Env vars (backend)
 

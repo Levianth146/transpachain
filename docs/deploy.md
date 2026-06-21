@@ -1,42 +1,105 @@
-# Deploy Guide (EC2 + Docker Compose)
+# Deploy Guide (Docker Hub + EC2)
 
-> **Frontend GHCR workflow (WSL build → EC2 pull):** see [deploy-ghcr.md](./deploy-ghcr.md)
+Primary deployment flow: **build frontend on WSL**, **push to Docker Hub**, **EC2 pulls pre-built images**. Backend image is built by GitHub Actions on push to `main`.
+
+**Optional GHCR workflow:** [deploy-ghcr.md](./deploy-ghcr.md)
+
+**Live site:** https://transpachain.site
+
+---
+
+## Architecture on EC2
+
+| Service | Image | Update method |
+|---------|-------|---------------|
+| **Frontend** | `cuongnguyen146/transpachain-frontend:latest` | WSL `make docker-build-frontend` + push, or CI |
+| **Backend** | `cuongnguyen146/transpachain-backend:latest` | GitHub Actions → EC2 `docker compose pull` |
+| **MongoDB** | `mongo:7` | Pulled by compose |
+| **Nginx** | Built from `nginx/` | Git pull on monorepo |
+
+`docker-compose.yml` has **no `build:` block for backend on EC2** — always pull from Docker Hub.
+
+---
 
 ## Prerequisites
 
-- EC2 with Docker + Docker Compose
-- `.env` at repo root (see `.env.example`)
+- EC2 instance with Docker + Docker Compose
+- Monorepo cloned with submodules: `git clone --recurse-submodules …`
+- Root `.env` filled from [`.env.example`](../.env.example)
 - DNS → EC2 (e.g. `transpachain.site`)
-- Let's Encrypt certs mounted at `/etc/letsencrypt`
+- Let's Encrypt certs at `/etc/letsencrypt` (nginx config)
 
-## Backend image (pull, not local build)
-
-`docker-compose.yml` uses **pre-built images** for backend (`cuongnguyen146/transpachain-backend:latest`) — there is no `build:` block for backend on EC2.
-
-| Service | EC2 update path |
-|---------|-----------------|
-| **Backend** | GitHub Actions builds + pushes on push to `main` → EC2 runs `docker compose pull` |
-| **Frontend** | Optional local `docker compose build frontend` with `.env` build-args, or pull from Docker Hub after CI |
-
-Backend at commit `48c2859` includes: `historicalSync` backfill, rate limiting, `errorHandler`, production `CORS_ORIGIN`.
-
-To build/push backend manually (e.g. before CI runs):
-
-```bash
-cd ~/transpachain/backend
-docker build -t cuongnguyen146/transpachain-backend:latest .
-docker push cuongnguyen146/transpachain-backend:latest
-```
-
-## Frontend build-args (critical)
-
-`NEXT_PUBLIC_*` variables are **baked in at `docker build`**, not at container runtime.
+### Submodule setup
 
 ```bash
 cd ~/transpachain
+git submodule update --init --recursive
+# backend/  → transpachain-backend
+# frontend/ → transpachain-frontend
+# contracts/ → transpachain-contracts
+```
+
+---
+
+## Environment variables (production)
+
+Copy `.env.example` → `.env` on EC2. Critical values:
+
+```env
+# Production
+CORS_ORIGIN=https://transpachain.site
+ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+MONGODB_URI=mongodb://mongodb:27017/transpachain
+
+# Indexer — Sepolia contract deploy block (Etherscan). 0 = skip backfill.
+DEPLOY_FROM_BLOCK=11102718
+INDEXER_LOG_CHUNK_SIZE=10
+
+# Backend contract addresses
+CHARITY_CORE_ADDRESS=0x8a5e023b16ab13939260492dAe72a0be1E597e1a
+DONATION_VAULT_ADDRESS=0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32
+GOVERNANCE_DAO_ADDRESS=0xCcAEaF248E536850877B9f948cB237Fe7885b513
+IMPACT_NFT_ADDRESS=0xD651d3531a44ee7941bFE257c79F41d274E180A6
+
+# Frontend build-args (baked into client JS at docker build)
+NEXT_PUBLIC_ALCHEMY_KEY=your_key
+NEXT_PUBLIC_CHARITY_CORE_ADDRESS=0x8a5e023b16ab13939260492dAe72a0be1E597e1a
+NEXT_PUBLIC_DONATION_VAULT_ADDRESS=0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32
+NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS=0xCcAEaF248E536850877B9f948cB237Fe7885b513
+NEXT_PUBLIC_IMPACT_NFT_ADDRESS=0xD651d3531a44ee7941bFE257c79F41d274E180A6
+NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+
+# Pinata (backend IPFS)
+PINATA_API_KEY=
+PINATA_SECRET_KEY=
+```
+
+After indexer backfill completes, set `DEPLOY_FROM_BLOCK=0` to speed up restarts.
+
+---
+
+## Primary flow: WSL build → Docker Hub → EC2 pull
+
+### 1. Build and push frontend (WSL / dev machine)
+
+```bash
+cd ~/projects/transpachain
+cp .env.example .env   # fill NEXT_PUBLIC_* and other vars
+git submodule update --init --recursive frontend
+
+# Build with env baked in
+make docker-build-frontend
+
+# Push to Docker Hub
+docker push cuongnguyen146/transpachain-frontend:latest
+```
+
+Or manually:
+
+```bash
 set -a && source .env && set +a
 cd frontend
-docker build --no-cache \
+docker build \
   --build-arg NEXT_PUBLIC_ALCHEMY_KEY="$NEXT_PUBLIC_ALCHEMY_KEY" \
   --build-arg NEXT_PUBLIC_CHARITY_CORE_ADDRESS="$NEXT_PUBLIC_CHARITY_CORE_ADDRESS" \
   --build-arg NEXT_PUBLIC_DONATION_VAULT_ADDRESS="$NEXT_PUBLIC_DONATION_VAULT_ADDRESS" \
@@ -44,196 +107,117 @@ docker build --no-cache \
   --build-arg NEXT_PUBLIC_IMPACT_NFT_ADDRESS="$NEXT_PUBLIC_IMPACT_NFT_ADDRESS" \
   --build-arg NEXT_PUBLIC_USDC_ADDRESS="$NEXT_PUBLIC_USDC_ADDRESS" \
   -t cuongnguyen146/transpachain-frontend:latest .
+docker push cuongnguyen146/transpachain-frontend:latest
 ```
 
-Or: `make docker-build-frontend` from monorepo root.
+> **Important:** `NEXT_PUBLIC_*` variables are embedded at **build time**, not runtime. Any address or RPC key change requires a rebuild and push.
 
-Set `NEXT_PUBLIC_USDC_ADDRESS` in root `.env` for USDC donate (Sepolia Circle USDC: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`).
-
-## GitHub Actions
+### 2. Backend via GitHub Actions
 
 Workflow: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 
-Set repository secrets (values not stored in repo):
+On push to `main`, CI builds both images with build-args, pushes to Docker Hub, SSHs to EC2, runs `docker compose pull && docker compose up -d`.
+
+Repository secrets required:
 
 | Secret | Purpose |
 |--------|---------|
-| `GH_PAT` | Checkout private submodules in CI |
-| `DOCKERHUB_USERNAME` | Push images |
-| `DOCKERHUB_TOKEN` | Push images |
-| `NEXT_PUBLIC_ALCHEMY_KEY` | Frontend build-arg |
-| `NEXT_PUBLIC_CHARITY_CORE_ADDRESS` | Frontend build-arg |
-| `NEXT_PUBLIC_DONATION_VAULT_ADDRESS` | Frontend build-arg |
-| `NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS` | Frontend build-arg |
-| `NEXT_PUBLIC_IMPACT_NFT_ADDRESS` | Frontend build-arg |
-| `NEXT_PUBLIC_USDC_ADDRESS` | Frontend build-arg (USDC donate) |
-| `EC2_HOST` | Deploy SSH target |
-| `EC2_SSH_KEY` | Deploy SSH private key |
+| `GH_PAT` | Checkout private submodules |
+| `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` | Push images |
+| `NEXT_PUBLIC_*` (6 vars) | Frontend build-args |
+| `EC2_HOST` / `EC2_SSH_KEY` | Deploy target |
 
-CI builds both images with `NEXT_PUBLIC_*` build-args, pushes to Docker Hub, then SSHs to EC2 and runs `docker compose pull && docker compose up -d`.
-
-## EC2 update (English)
+Manual backend push (if CI unavailable):
 
 ```bash
-cd ~/transpachain
-git pull && git submodule update --init --recursive
-set -a && source .env && set +a
-docker compose pull
-docker compose up -d --force-recreate backend frontend
-docker compose logs -f backend   # Ctrl+C when indexer + backfill look OK
+cd backend
+docker build -t cuongnguyen146/transpachain-backend:latest .
+docker push cuongnguyen146/transpachain-backend:latest
 ```
 
-Requires `postcss.config.js` in the frontend submodule (Tailwind). After deploy, verify CSS is compiled (not raw `@tailwind`):
+### 3. EC2 update
 
 ```bash
-curl -s https://transpachain.site | grep -oE '/_next/static/[^"]+\.css' | head -1
-curl -s "https://transpachain.site/<that-path>" | head -c 80   # should NOT contain @tailwind
-curl -I https://transpachain.site/logo.svg                      # expect 200
-```
-
-## EC2 update (detailed — run via SSH)
-
-SSH into EC2 and run the steps below. Frontend should already be deployed (CSS, logo OK).
-
-### 1. Pull latest code + submodules
-
-```bash
+ssh ubuntu@YOUR_EC2_IP
 cd ~/transpachain
 git pull origin main
 git submodule update --init --recursive
-```
-
-### 2. Verify / update `.env` (repo root)
-
-Compared to `.env.example`, ensure these are set (use real values if missing):
-
-```bash
-# Required for production
-CORS_ORIGIN=https://transpachain.site
-ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
-
-# Indexer backfill — Sepolia contract deploy block (see Etherscan deploy tx). 0 = disabled.
-DEPLOY_FROM_BLOCK=11102718
-# Alchemy Free: eth_getLogs max ~10 blocks per request (backend chunks by default)
-INDEXER_LOG_CHUNK_SIZE=10
-
-# USDC donate on frontend (Sepolia Circle USDC)
-NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-
-# Contract addresses (current Sepolia deploy)
-CHARITY_CORE_ADDRESS=0x8a5e023b16ab13939260492dAe72a0be1E597e1a
-DONATION_VAULT_ADDRESS=0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32
-GOVERNANCE_DAO_ADDRESS=0xCcAEaF248E536850877B9f948cB237Fe7885b513
-IMPACT_NFT_ADDRESS=0xD651d3531a44ee7941bFE257c79F41d274E180A6
-NEXT_PUBLIC_CHARITY_CORE_ADDRESS=0x8a5e023b16ab13939260492dAe72a0be1E597e1a
-NEXT_PUBLIC_DONATION_VAULT_ADDRESS=0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32
-NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS=0xCcAEaF248E536850877B9f948cB237Fe7885b513
-NEXT_PUBLIC_IMPACT_NFT_ADDRESS=0xD651d3531a44ee7941bFE257c79F41d274E180A6
-```
-
-### 3. Update Docker (backend pull from Hub, no local build)
-
-Backend has **no** `build:` in compose — image is built/pushed by CI. On EC2:
-
-```bash
-cd ~/transpachain
 set -a && source .env && set +a
 docker compose pull
 docker compose up -d --force-recreate backend frontend nginx
+docker compose logs -f backend   # wait for indexer + backfill
 ```
 
-If CI has not finished, you can build frontend locally:
+---
+
+## Verification checklist
 
 ```bash
-docker compose build --no-cache frontend
-docker compose up -d --force-recreate frontend
+# Health
+curl -s https://transpachain.site/api/health | jq .
+
+# CSS compiled (not raw @tailwind)
+curl -s https://transpachain.site | grep -oE '/_next/static/[^"]+\.css' | head -1
+# curl that path — should NOT contain "@tailwind"
+
+# Static assets
+curl -I https://transpachain.site/logo.svg   # expect 200
 ```
 
-### 4. Verify backend + indexer
+Expected backend logs:
 
-```bash
-docker compose logs backend --tail 80
-```
-
-Expected in logs:
-
-- Server/API started (port 3001)
+- Server started on port 3001
 - `[Indexer]` listening for events
-- If `DEPLOY_FROM_BLOCK` > 0: historical backfill (older campaigns/donations)
+- Historical backfill progress (if `DEPLOY_FROM_BLOCK > 0`)
 
-Health check:
-
-```bash
-curl -s https://transpachain.site/api/health
-```
-
-### 5. Live demo checklist (5 minutes)
-
-Per [demo-script.md](./demo-script.md):
-
-- [ ] **Homepage** — stats (campaigns, ETH donated, donors); explain milestone escrow
-- [ ] **Admin** (optional) — Admin tab, verify org wallet; mention `VERIFIER_ROLE`
-- [ ] **Campaign** — progress bar, milestones, ETH/USDC token; donate via MetaMask Sepolia → first Impact NFT
-- [ ] **Refund** — failed/expired campaign → Claim refund panel
-- [ ] **Governance** — milestone proof, donor vote, timelock
-- [ ] **Transparency** — Etherscan tx links; indexer MongoDB + IPFS; `/legal` disclaimer
-- [ ] **Bonus** — repeat donate upgrades NFT tier (requires new contract redeploy); USDC approve + donate
+Indexer sync: `/api/health` → `indexer.inSync: true` when `onChainCampaigns === indexedCampaigns`.
 
 ---
 
-## Redeploy contract Sepolia (optional)
-
-**Do you need to redeploy?** — **Yes**, if you want **NFT tier upgrade on repeat donate** (new bytecode at contracts commit `63300f6`). Current Sepolia contracts were deployed before that upgrade; frontend/backend still run with the old addresses.
-
-**Do not deploy** until `DEPLOYER_PRIVATE_KEY` is set in env.
-
-### Prerequisites (local machine or EC2 with Foundry/Hardhat)
-
-Trong `contracts/` (submodule):
+## Local development
 
 ```bash
-# .env in contracts/ or export
-DEPLOYER_PRIVATE_KEY=0x...          # REQUIRED — do not commit
-USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-ETHERSCAN_API_KEY=...                # optional verify
+git clone --recurse-submodules https://github.com/Levianth146/transpachain.git
+cd transpachain
+cp .env.example .env
+docker compose up -d
+
+# Optional demo seed
+cd backend && npm run seed
 ```
 
-### Option 1 — Foundry
+Access: `http://localhost`
+
+Individual services:
 
 ```bash
-cd contracts
-forge script script/Deploy.s.sol:Deploy \
-  --rpc-url "$ALCHEMY_SEPOLIA_URL" \
-  --broadcast \
-  -vvvv
+make backend-dev    # port 3001
+make frontend-dev   # port 3000
+make contracts-test # forge test
 ```
-
-Record the 4 printed addresses: CharityCore, ImpactNFT, GovernanceDAO, DonationVault.
-
-### Option 2 — Hardhat
-
-```bash
-cd contracts
-npx hardhat run hardhat/scripts/deploy.ts --network sepolia
-```
-
-Or from root: `make contracts-deploy`
-
-### After redeploy
-
-1. Update **all** env (root `.env`, GitHub secrets `NEXT_PUBLIC_*` + backend `CHARITY_*` / `DONATION_*` / …).
-2. Set `DEPLOY_FROM_BLOCK` = new deploy block (Etherscan).
-3. Rebuild frontend (new build-args) and push/pull image.
-4. `docker compose up -d --force-recreate backend` — indexer backfill from new block.
-5. Create new campaigns on the new contract; old data does not migrate automatically.
 
 ---
 
-## Health check
+## Contract redeploy (optional)
+
+Only needed when deploying **new contract bytecode** (e.g. after changing Solidity). Current Sepolia addresses are in `.env.example`.
 
 ```bash
-curl https://transpachain.site/api/health
+cd contracts
+# Set DEPLOYER_PRIVATE_KEY, USDC_ADDRESS in contracts/.env
+make contracts-deploy   # or: npx hardhat run hardhat/scripts/deploy.ts --network sepolia
 ```
+
+After redeploy:
+
+1. Update all `CHARITY_*` / `NEXT_PUBLIC_*` addresses in `.env`, GitHub secrets, and CI.
+2. Set `DEPLOY_FROM_BLOCK` to new deploy block (Etherscan).
+3. Rebuild and push frontend image.
+4. Restart backend — indexer backfills from new block.
+5. Run reconcile: `POST /api/admin/reconcile-campaigns`.
+6. Create new campaigns; old deployment data does not migrate automatically.
+
+---
 
 ## HTTPS renewal
 
@@ -241,3 +225,12 @@ curl https://transpachain.site/api/health
 sudo certbot renew
 docker compose restart nginx
 ```
+
+---
+
+## Related docs
+
+- [deploy-ghcr.md](./deploy-ghcr.md) — alternative GHCR registry flow
+- [demo-guide.md](./demo-guide.md) — pre-demo checklist
+- [architecture.md](./architecture.md) — system overview
+- [mongodb-guide.md](./mongodb-guide.md) — database setup

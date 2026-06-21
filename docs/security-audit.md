@@ -20,7 +20,7 @@ Document findings below after each run. Re-run before major demos.
 |-------|--------|
 | ReentrancyGuard on value transfers | Implemented |
 | Custom errors library (`Errors.sol`) | Added for gas / clarity |
-| 282+ Foundry tests | Run `make contracts-test` |
+| 307 Foundry tests | Run `make contracts-test` |
 | Slither on src/ | Run locally before release |
 
 ## Risks mitigated
@@ -29,7 +29,7 @@ Document findings below after each run. Re-run before major demos.
 |------|----------|
 | Reentrancy | `ReentrancyGuard` on DonationVault |
 | Push refunds | Pull pattern — `claimRefund()` |
-| Flash-loan voting | Voting power from donation at snapshot |
+| Flash-loan voting | Quadratic voting power from escrowed donation at snapshot |
 | Overflow | Solidity ^0.8 |
 | Spam campaigns | Creation deposit on `createCampaign` |
 | Org bypassing DAO | `releaseMilestoneFunds` only callable by GovernanceDAO |
@@ -40,7 +40,7 @@ Document findings below after each run. Re-run before major demos.
 
 **On-chain:**
 
-- Voting power proportional to donation size (whale influence)
+- Voting power uses quadratic weight (√donation) — large donors still have more influence but sublinearly
 - No KYC for organizations
 - Voting period ~3 days (block-based) — slow for emergencies
 - Impact NFTs are transferable ERC-721 on testnet

@@ -2,7 +2,7 @@
 
 > Transparent charity platform powered by Ethereum — milestone-based fund release with DAO governance
 
-**Live Demo:** http://3.106.166.120  
+**Live Demo:** https://transpachain.site  
 **Network:** Ethereum Sepolia Testnet
 
 ---
@@ -14,11 +14,34 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 ### Key Features
 
 - **Milestone-based fund release** — funds are locked in escrow and only released when milestones are approved by donors
-- **DAO Governance** — donors vote on milestone completion proofs before funds are released
+- **DAO Governance** — quadratic donor voting on milestone completion proofs before funds are released
 - **Impact NFTs** — donors receive NFT badges (Bronze/Silver/Gold) based on contribution amount
-- **IPFS metadata** — campaign metadata stored on IPFS via Pinata for decentralized storage
+- **Verified organizations** — only admin-verified orgs can create campaigns
+- **Evidence + IPFS** — milestone proofs pinned via Pinata; admin review before voting
 - **Multi-token support** — donate with ETH or USDC
 - **Real-time indexing** — blockchain events indexed into MongoDB for fast querying
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [user-manual.md](./docs/user-manual.md) | **User guide** — donors, orgs, admins, troubleshooting |
+| [demo-guide.md](./docs/demo-guide.md) | **Demo guide** — checklist, 10-min script, Q&A prep, fallbacks |
+| [demo-script.md](./docs/demo-script.md) | Quick 5-minute demo reference card |
+| [architecture.md](./docs/architecture.md) | System overview, components, data flows, env vars |
+| [system-design.md](./docs/system-design.md) | Contracts, indexer, frontend Web3, security model |
+| [workflow.md](./docs/workflow.md) | End-to-end workflows (onboard → donate → vote → refund) |
+| [deploy.md](./docs/deploy.md) | **Primary deploy** — Docker Hub + EC2 |
+| [deploy-ghcr.md](./docs/deploy-ghcr.md) | Optional GHCR frontend deploy |
+| [smart-contracts-explained.md](./docs/smart-contracts-explained.md) | Contract FAQ and function reference |
+| [security-audit.md](./docs/security-audit.md) | Security analysis and Slither instructions |
+| [mongodb-guide.md](./docs/mongodb-guide.md) | MongoDB data flow, Compass, Atlas, indexedScope |
+| [donate-flow.md](./docs/donate-flow.md) | ETH/USDC donate and refund sequence diagrams |
+| [charity-business-flow.md](./docs/charity-business-flow.md) | Real-world charity vs on-chain mapping |
+| [traditional-vs-transpachain.md](./docs/traditional-vs-transpachain.md) | Comparison table for stakeholders |
+| [er-diagram.md](./docs/er-diagram.md) | MongoDB schema ER diagram |
 
 ---
 
@@ -56,6 +79,8 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
     └─────────────────────┘
 ```
 
+Full diagram and data flows: [docs/architecture.md](./docs/architecture.md)
+
 ---
 
 ## 🔧 Tech Stack
@@ -64,7 +89,7 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 | Technology | Purpose |
 |---|---|
 | Solidity 0.8.20 | Smart contract language |
-| Foundry | Testing (282 tests) + fuzzing |
+| Foundry | Testing (307 tests) + fuzzing |
 | Hardhat | Deployment scripts |
 | OpenZeppelin 5.x | Security standards (AccessControl, ERC721) |
 
@@ -77,20 +102,20 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 | ethers.js v6 | Blockchain event indexing |
 | Socket.io | Real-time WebSocket |
 | Pinata SDK | IPFS file storage |
-| Multer | File upload handling |
 
 ### Frontend
 | Technology | Purpose |
 |---|---|
-| Next.js 16 | React framework (Turbopack) |
+| Next.js 16 | React framework (App Router) |
 | wagmi v2 + viem | Ethereum wallet integration |
-| TailwindCSS | Styling |
+| TailwindCSS | Dark holo-mint glass UI |
 | TypeScript | Type safety |
 
 ### Infrastructure
 | Technology | Purpose |
 |---|---|
 | Docker + Docker Compose | Containerization |
+| Docker Hub | `cuongnguyen146/transpachain-*` images |
 | Nginx | Reverse proxy |
 | AWS EC2 | Cloud hosting |
 
@@ -106,27 +131,21 @@ TranspaChain is a blockchain-based charity platform that ensures complete transp
 | DonationVault | `0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32` |
 | GovernanceDAO | `0xCcAEaF248E536850877B9f948cB237Fe7885b513` |
 | ImpactNFT | `0xD651d3531a44ee7941bFE257c79F41d274E180A6` |
+| USDC (Sepolia) | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
 
 ### Test Coverage
-- **282 / 282 tests passing**
-- Unit tests + fuzz tests for all contracts
-- Integration tests for full donation lifecycle
 
-### Contract Interactions
-```
-Donor → DonationVault.donate() → ETH locked in escrow
-Org   → DonationVault.submitMilestoneProof() → creates Proposal
-Donor → GovernanceDAO.castVote() → vote For/Against
-Admin → GovernanceDAO.queueProposal() → timelock starts
-Admin → GovernanceDAO.executeProposal() → funds released to org
-                                        → ImpactNFT minted for donor
-```
+- **307 / 307 Foundry tests passing**
+- Unit, fuzz, and integration tests for full donation lifecycle
+
+Details: [docs/smart-contracts-explained.md](./docs/smart-contracts-explained.md)
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 20+
 - Docker + Docker Compose
 - MetaMask (Sepolia testnet)
@@ -144,33 +163,51 @@ cp .env.example .env
 # Start all services
 docker compose up -d
 
-# Seed demo data
-cd backend
-npm run seed
+# Seed demo data (optional)
+cd backend && npm run seed
 ```
 
 **Access:** `http://localhost`
 
-### Environment Variables
+### Deploy to production
 
-```env
-# Alchemy RPC
-ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+See [docs/deploy.md](./docs/deploy.md) — WSL `make docker-build-frontend`, push to Docker Hub, EC2 `docker compose pull`.
 
-# Contract addresses
-CHARITY_CORE_ADDRESS=0x...
-DONATION_VAULT_ADDRESS=0x...
-GOVERNANCE_DAO_ADDRESS=0x...
-IMPACT_NFT_ADDRESS=0x...
+---
 
-# Pinata IPFS
-PINATA_API_KEY=your_key
-PINATA_SECRET_KEY=your_secret
+## 🌐 Frontend Routes
 
-# Frontend
-NEXT_PUBLIC_ALCHEMY_KEY=your_key
-NEXT_PUBLIC_CHAIN_ID=11155111
-```
+| Route | Purpose |
+|-------|---------|
+| `/` | Homepage |
+| `/campaigns` | Campaign list |
+| `/campaigns/[id]` | Campaign detail |
+| `/campaigns/create` | Create campaign (verified org) |
+| `/dashboard` | Donor dashboard + NFT gallery |
+| `/governance` | Governance hub |
+| `/governance/[proposalId]` | Vote / queue / execute |
+| `/admin` | Admin panel (role-gated) |
+| `/about` | Mission, team, anti-abuse policy |
+| `/legal` | Testnet disclaimer |
+
+User guide: [docs/user-manual.md](./docs/user-manual.md)
+
+---
+
+## 🔌 API Endpoints
+
+| Prefix | Description |
+|--------|-------------|
+| `GET /health` | Health + indexer sync status |
+| `GET /campaigns` | List, stats, detail, proposals, donations |
+| `GET /donations` | Campaign and donor donation history |
+| `GET /proposals` | Governance proposals |
+| `GET/POST /orgs` | Organization profiles |
+| `GET/POST /evidence` | Milestone evidence |
+| `GET/PATCH /admin/*` | Admin workflows + reconcile |
+| `POST /ipfs/*` | Pinata metadata and file upload |
+
+Proxied at `https://transpachain.site/api/*` via nginx.
 
 ---
 
@@ -180,112 +217,11 @@ NEXT_PUBLIC_CHAIN_ID=11155111
 transpachain/                    # Root repo (submodules)
 ├── docker-compose.yml           # Full stack orchestration
 ├── nginx/nginx.conf             # Reverse proxy config
-├── docs/                        # Documentation
-│   └── improvement-plan.md
+├── docs/                        # Documentation (see table above)
+├── Makefile                     # docker-build-frontend, contracts-test, …
 ├── backend/  → transpachain-backend
 ├── frontend/ → transpachain-frontend
 └── contracts/ → transpachain-contracts
-
-transpachain-backend/
-├── src/
-│   ├── indexer/eventListener.ts # Blockchain event indexer
-│   ├── models/                  # Mongoose schemas
-│   │   ├── Campaign.ts
-│   │   ├── Donation.ts
-│   │   └── Proposal.ts
-│   ├── routes/                  # Express routes
-│   │   ├── campaigns.ts
-│   │   ├── donations.ts
-│   │   └── ipfs.ts
-│   ├── seed.ts                  # Demo data seeder
-│   └── server.ts                # Express app entry
-
-transpachain-frontend/
-├── app/                         # Next.js App Router
-│   ├── page.tsx                 # Homepage
-│   ├── campaigns/[id]/          # Campaign detail
-│   ├── campaigns/create/        # Create campaign
-│   ├── dashboard/               # Donor dashboard
-│   └── governance/[proposalId]/ # Voting page
-├── components/                  # React components
-│   ├── CampaignCard.tsx
-│   ├── CampaignList.tsx
-│   ├── DonateModal.tsx
-│   ├── VotingPanel.tsx
-│   └── NFTGallery.tsx
-├── hooks/                       # wagmi custom hooks
-│   ├── useCharityCore.ts
-│   ├── useDonationVault.ts
-│   └── useGovernance.ts
-└── lib/
-    ├── api.ts                   # Backend API client
-    ├── contracts.ts             # Contract ABIs + addresses
-    └── wagmi.ts                 # wagmi config
-
-transpachain-contracts/
-├── src/
-│   ├── CharityCore.sol
-│   ├── DonationVault.sol
-│   ├── GovernanceDAO.sol
-│   └── ImpactNFT.sol
-├── test/                        # 282 tests
-└── hardhat/scripts/deploy.ts
-```
-
----
-
-## 🔌 API Endpoints
-
-### Campaigns
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/campaigns` | List campaigns (paginated, filterable) |
-| GET | `/campaigns/stats` | Platform statistics |
-| GET | `/campaigns/:id` | Campaign details |
-| GET | `/campaigns/:id/proposals` | Campaign proposals |
-| GET | `/campaigns/:id/donations` | Campaign donations |
-
-### Donations
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/donations/campaign/:id` | Donations by campaign |
-| GET | `/donations/summary/:address` | Donor summary |
-| GET | `/donations/:address` | All donations by address |
-
-### IPFS
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/ipfs/metadata` | Pin JSON metadata |
-| POST | `/ipfs/upload` | Upload file |
-| GET | `/ipfs/:cid` | Fetch IPFS content |
-
----
-
-## 🗃️ Data Flow
-
-```
-1. User creates campaign on frontend
-   → Uploads metadata to IPFS via backend
-   → Calls CharityCore.createCampaign() on Sepolia
-   
-2. Event Indexer detects CampaignCreated event
-   → Fetches metadata from IPFS
-   → Stores in MongoDB
-
-3. User donates ETH
-   → Calls DonationVault.donate()
-   → ETH locked in escrow
-   → ImpactNFT minted
-
-4. Org submits milestone proof
-   → Calls DonationVault.submitMilestoneProof()
-   → GovernanceDAO creates Proposal
-
-5. Donors vote on proposal
-   → Calls GovernanceDAO.castVote()
-
-6. After voting period ends
-   → Queue → Execute → ETH released to org
 ```
 
 ---
@@ -308,4 +244,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## ⚠️ Disclaimer
 
-This project is deployed on **Sepolia testnet only** for demonstration purposes. Do not use with real funds.
+This project is deployed on **Sepolia testnet only** for demonstration purposes. Do not use with real funds. See [/legal](https://transpachain.site/legal) on the live site.

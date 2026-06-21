@@ -1,4 +1,6 @@
-# 5-Minute Live Demo Script
+# 5-Minute Live Demo Script (Quick Reference)
+
+> **Full guide:** [demo-guide.md](./demo-guide.md) — pre-demo checklist, Q&A prep, fallbacks, role-play paths.
 
 **Site:** https://transpachain.site  
 **Network:** Ethereum Sepolia  
@@ -13,81 +15,53 @@
 | GovernanceDAO | `0xCcAEaF248E536850877B9f948cB237Fe7885b513` |
 | ImpactNFT | `0xD651d3531a44ee7941bFE257c79F41d274E180A6` |
 
-> After redeploy, update addresses in `.env` and this table.
-
 ---
 
-## Six demo flows (pick 2–3 per session)
+## Pre-flight (30 seconds)
 
-### Flow 1 — ETH donate + Impact NFT
-
-1. Homepage stats (indexed donations).
-2. Open **Active** campaign → **Escrow Vault** card (funds locked).
-3. **Donate** ETH → MetaMask Sepolia → Impact NFT mint.
-4. Etherscan tx link from wallet history.
-
-### Flow 2 — USDC donate
-
-1. Campaign with `paymentToken = USDC`.
-2. Approve USDC → `donateUSDC` in modal.
-3. Escrow holds USDC until milestone release.
-
-### Flow 3 — Milestone pass (DAO)
-
-1. Org wallet: **Organization actions** → submit milestone proof (IPFS CID).
-2. **Governance** nav → see proposal; or campaign **Voting** panel.
-3. Donor votes **For** → **Queue** → wait timelock → **Execute & Release Funds**.
-4. Milestone timeline shows **Released**.
-
-> **Demo placeholder CIDs:** The Hardhat demo script (`contracts/hardhat/scripts/demo.ts`) submits
-> `QmMilestone0ProofCID` — a fake CID for on-chain flow testing, not pinned on IPFS. The governance
-> UI shows “Demo proof” instead of a broken IPFS link. For a real demo, upload evidence via Pinata
-> (or backend `/ipfs/upload`) and submit the returned CID.
-
-### Flow 4 — Milestone fail
-
-1. Vote **Against** or miss 51% quorum → proposal **Defeated**.
-2. Org can resubmit on-chain (`resubmitProposal` — UI optional).
-3. Explain escrow unchanged until a proposal passes.
-
-### Flow 5 — Refund
-
-1. Campaign misses goal → org/anyone **Finalize** → status **Failed**.
-2. Donor **Claim refund** — proportional if partial milestones released.
-3. **Escrow** card shows eligibility.
-
-### Flow 6 — Cancel (zero donors)
-
-1. New campaign, no donations.
-2. Org **Cancel** — status Cancelled.
-3. Contrast with failed + refund path.
+- [ ] MetaMask on Sepolia, donor wallet funded
+- [ ] `/api/health` OK, at least one Active campaign
+- [ ] `/legal` tab open for disclaimer
 
 ---
 
 ## Minute-by-minute (5 min)
 
-| Time | Action |
-|------|--------|
-| 0–1 | Homepage + **Governance** hub overview |
-| 1–2 | **Dashboard** org profile (off-chain) → **Admin** verify on-chain |
-| 2–3 | Campaign: escrow card + donate (Flow 1 or 2) |
-| 3–4 | Org submit proof + donor vote (Flow 3) |
-| 4–5 | Etherscan + `/legal` testnet disclaimer |
+| Time | Action | Talking point |
+|------|--------|---------------|
+| 0–1 | `/` homepage stats | Escrow model; funds locked until milestones pass |
+| 1–2 | `/about` anti-abuse strip | Verified orgs, quadratic vote, timelock |
+| 2–3 | `/campaigns/[id]` → donate ETH | Escrow card; Impact NFT mint; Etherscan link |
+| 3–4 | `/governance` or voting panel | Donor vote; admin-approved evidence |
+| 4–5 | `/dashboard` NFT + `/legal` | Donor proof badge; testnet disclaimer |
+
+---
+
+## Six flows (pick 2–3)
+
+1. **ETH donate + NFT** — donate → dashboard gallery
+2. **USDC donate** — approve + `donateUSDC` on USDC campaign
+3. **Milestone pass** — org proof → admin approve → vote → queue → execute
+4. **Milestone fail** — vote Against / miss quorum → escrow unchanged
+5. **Refund** — Failed campaign → claim refund
+6. **Cancel** — zero-donor campaign → org cancel
+
+See [demo-guide.md](./demo-guide.md) for step detail and Q&A answers.
 
 ---
 
 ## Admin / verifier
 
-- **Admin** tab: verify org address (`verifyOrg`).
-- **Organization applications**: review off-chain profile first.
-- **VERIFIER_ROLE**: same verify UI; tab Admin visible after frontend deploy.
+- **Admin** tab: verify org (`verifyOrg`), review org profiles
+- Approve milestone evidence before public governance vote
+- Queue → timelock → execute after donor quorum
 
 ---
 
 ## Backup talking points
 
-- Escrow ÷ remaining milestones = release amount per proof.
-- 1% platform fee to treasury on donate.
-- WebSocket live updates on homepage.
-- **Repeat donate NFT tier upgrade** — requires contract redeploy (`63300f6`).
-- MongoDB seed for portfolio: `npm run seed` in backend (dev only).
+- Escrow ÷ remaining milestones = release per approved proof
+- 1% platform fee to treasury on donate
+- WebSocket live updates on homepage
+- Quadratic voting: weight = √donation
+- MongoDB indexer for fast UI; Sepolia is source of truth

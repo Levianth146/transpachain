@@ -45,8 +45,9 @@ Frontend env: `NEXT_PUBLIC_USDC_ADDRESS` (Sepolia USDC).
 ## GovernanceDAO
 
 - Proposals created only by DonationVault when org submits milestone proof.
-- **Voting power** = donor’s escrow balance at snapshot (via vault).
-- **Quorum** = 51% of total voting power assigned to proposal.
+- **Quadratic voting power** = `sqrt(donation amount)` via `quadraticWeight()` — splitting across wallets does not increase total influence.
+- **Quorum** = 51% of total quadratic voting power for the campaign.
+- Off-chain **admin approval** required before proposals appear in the public governance hub (`approvalStatus`).
 - States: Active → Queued (after vote passes) → Executed (after timelock) or Defeated.
 - **Timelock** = 24 hours after queue before execute.
 
