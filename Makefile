@@ -1,4 +1,4 @@
-.PHONY: help contracts-test contracts-deploy backend-dev frontend-dev docker-up docker-build-frontend lint
+.PHONY: help contracts-test contracts-deploy backend-dev frontend-dev docker-up docker-build-frontend deploy-frontend-ghcr lint
 
 help:
 	@echo "TranspaChain monorepo targets"
@@ -8,6 +8,7 @@ help:
 	@echo "  make frontend-dev            - npm run dev in frontend"
 	@echo "  make docker-up               - docker compose up -d"
 	@echo "  make docker-build-frontend   - build frontend image with .env build-args"
+	@echo "  make deploy-frontend-ghcr    - build + push frontend to GHCR (WSL)"
 	@echo "  make lint                    - frontend lint"
 
 contracts-test:
@@ -36,6 +37,9 @@ docker-build-frontend:
 	  --build-arg NEXT_PUBLIC_IMPACT_NFT_ADDRESS="$$NEXT_PUBLIC_IMPACT_NFT_ADDRESS" \
 	  --build-arg NEXT_PUBLIC_USDC_ADDRESS="$$NEXT_PUBLIC_USDC_ADDRESS" \
 	  -t cuongnguyen146/transpachain-frontend:latest .
+
+deploy-frontend-ghcr:
+	./scripts/deploy-frontend-wsl.sh
 
 lint:
 	cd frontend && npm run lint

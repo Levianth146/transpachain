@@ -1,5 +1,7 @@
 # Deploy Guide (EC2 + Docker Compose)
 
+> **Frontend GHCR workflow (WSL build → EC2 pull):** see [deploy-ghcr.md](./deploy-ghcr.md)
+
 ## Prerequisites
 
 - EC2 with Docker + Docker Compose
