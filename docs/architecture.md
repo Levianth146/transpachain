@@ -12,7 +12,7 @@ TranspaChain is a full-stack charity platform on **Ethereum Sepolia testnet**. D
 ```mermaid
 graph TD
     Browser["Browser<br/>Next.js 16 · wagmi v2 · viem"]
-    Nginx["Nginx :80<br/>/ → frontend · /api → backend"]
+    Nginx["Nginx :443<br/>TLS · /api proxy · 10MB uploads"]
     Frontend["Frontend :3000<br/>Next.js App Router"]
     Backend["Backend :3001<br/>Express · Socket.io · ethers.js"]
     MongoDB["MongoDB<br/>Campaigns · Donations · Proposals · Orgs"]
@@ -38,7 +38,7 @@ graph TD
 | Layer | Location | Responsibility |
 |-------|----------|----------------|
 | **Frontend** | `frontend/` submodule | Wallet connect, campaign browse/create, donate (ETH/USDC), governance voting, dashboard, admin UI |
-| **Nginx** | `nginx/nginx.conf` | Reverse proxy: `/` → frontend, `/api/` → backend |
+| **Nginx** | `nginx/nginx.conf` | Reverse proxy: `/` → frontend, `/api/` → backend; `client_max_body_size 10m` for evidence uploads |
 | **Backend API** | `backend/src/routes/` | REST endpoints for campaigns, donations, proposals, org profiles, evidence, IPFS proxy |
 | **Indexer** | `backend/src/indexer/` | Listens to contract events via Alchemy; writes MongoDB; emits Socket.io updates |
 | **MongoDB** | Docker volume `mongo_data` | Read-optimized cache of indexed events + off-chain profiles |
@@ -170,6 +170,7 @@ Full list: root [`.env.example`](../.env.example). Deploy: [deploy.md](./deploy.
 
 | Doc | Topic |
 |-----|-------|
+| [project-report.md](./project-report.md) | Full academic/professional project report |
 | [system-design.md](./system-design.md) | Contracts, indexer design, security model |
 | [workflow.md](./workflow.md) | End-to-end user workflows |
 | [smart-contracts-explained.md](./smart-contracts-explained.md) | Contract FAQ |

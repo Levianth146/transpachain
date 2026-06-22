@@ -1,6 +1,6 @@
 # TranspaChain System Design
 
-Technical design reference for smart contracts, backend indexer, frontend Web3 integration, and security model. For high-level architecture see [architecture.md](./architecture.md).
+Technical design reference for smart contracts, backend indexer, frontend Web3 integration, and security model. For high-level architecture see [architecture.md](./architecture.md). For the full project report see [project-report.md](./project-report.md).
 
 ---
 
@@ -133,7 +133,9 @@ Schema reference: [er-diagram.md](./er-diagram.md), [mongodb-guide.md](./mongodb
 | Hooks | `hooks/useCharityCore.ts`, `useDonationVault.ts`, `useGovernance.ts` |
 | API client | `lib/api.ts` — fetches `/api/*` via nginx proxy |
 | Live updates | `hooks/useSocket.ts` — Socket.io on homepage and admin |
-| IPFS | Backend proxy (`/api/ipfs/upload`) — org evidence and campaign images |
+| IPFS | Backend proxy (`/api/ipfs/upload`) — org evidence and campaign images; Pinata keys server-side only |
+
+**Evidence upload flow:** Org selects image via `FileUploadButton` → `POST /api/ipfs/upload` (multer + Pinata) → `POST /api/evidence` with `imageUrl` + `ipfsCID` → admin approves at `/admin` → donors vote after proposal approval.
 
 **Build-time env:** All `NEXT_PUBLIC_*` values are baked into the Docker frontend image at build. Changing contract addresses requires rebuilding and redeploying the frontend image.
 
