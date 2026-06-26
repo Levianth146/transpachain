@@ -17,14 +17,15 @@
 
 ## Refunds
 
-**`claimRefund(campaignId)`** — pull pattern; donor calls when:
+**`claimRefund(campaignId)`** — pull pattern; donor calls only when campaign status is **Failed** or **Cancelled** (must finalize expired underfunded campaigns first).
 
-- Campaign status is **Failed**, OR
-- `block.timestamp > deadline` (even before finalize in some cases per `canRefund`)
+**Proportional refund:** Uses `_remainingRefundWeight` as denominator (not `totalDeposited`):
 
-**Proportional refund:** If some milestones were already released, refund amount is scaled by remaining escrow vs total deposited.
+`refundAmount = donorBalance × escrow / remainingRefundWeight`
 
-**`canRefund(campaignId, donor)`** — view for UI: returns `(eligible, amount, refundDeadline)`.
+This ensures fair proportional distribution after partial milestone releases, independent of claim order.
+
+**Views:** `canRefund`, `getRefundableAmount`, `getRefundRatioBps`, `getTotalDeposited` (stats only).
 
 ## USDC campaigns
 
@@ -32,6 +33,8 @@
 2. Donor `approve(DonationVault, amount)` on Sepolia USDC ERC-20.
 3. Donor calls `donateUSDC(campaignId, amount)` (6 decimals).
 4. Milestone release and refunds use USDC transfers, not ETH.
+
+**NFT tiers (USDC):** Silver ≥ 10 USDC, Gold ≥ 100 USDC (gross amount for recognition).
 
 Frontend env: `NEXT_PUBLIC_USDC_ADDRESS` (Sepolia USDC).
 
@@ -45,8 +48,9 @@ Frontend env: `NEXT_PUBLIC_USDC_ADDRESS` (Sepolia USDC).
 ## GovernanceDAO
 
 - Proposals created only by DonationVault when org submits milestone proof.
-- **Quadratic voting power** = `sqrt(donation amount)` via `quadraticWeight()` — splitting across wallets does not increase total influence.
-- **Quorum** = 51% of total quadratic voting power for the campaign.
+- **Quadratic voting power** = `sqrt(net donation amount)` via `quadraticWeight()`.
+- **Quorum** = 51% of total cast vote weight vs total voting power snapshot (`totalCast × 10000 / totalVotingPower ≥ 5100`).
+- **Majority** = `forVotes > againstVotes`. Both required to queue.
 - Off-chain **admin approval** required before proposals appear in the public governance hub (`approvalStatus`).
 - States: Active → Queued (after vote passes) → Executed (after timelock) or Defeated.
 - **Timelock** = 24 hours after queue before execute.

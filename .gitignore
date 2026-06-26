@@ -1,3 +1,4 @@
 .claude/
 .qwen/
 .env
+*.code-workspace

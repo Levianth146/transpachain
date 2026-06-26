@@ -87,13 +87,15 @@ Until admin approves, donors do not see the proposal for voting (off-chain gate 
 | 1 | Donor | Open `/governance/[proposalId]` |
 | 2 | Donor | Cast vote For / Against / Abstain (quadratic weight) |
 | 3 | System | Wait for voting period (~3 days block-based) |
-| 4 | Admin | Queue proposal if passed (51% quorum met) |
+| 4 | Admin | Queue proposal if passed (51% quorum of cast votes + majority For) |
 | 5 | System | 24-hour timelock |
-| 6 | Admin | Execute proposal → `releaseMilestoneFunds` |
+| 6 | Admin | Execute release → `releaseMilestoneFunds(campaignId, idx, proposalId)` |
 | 7 | Vault | Escrow slice transferred to org wallet |
 | 8 | UI | Milestone timeline shows **Released** |
 
-**Defeated vote:** Proposal fails; escrow unchanged. Org may resubmit proof on-chain (`resubmitProposal`).
+**Defeated vote:** Proposal fails; escrow unchanged. Org resubmits proof via `submitMilestoneProof` (DAO `resubmitProposal` is disabled).
+
+**Campaign phases:** Active → Funded (goal reached) → Milestone voting → Completed (all milestones released). **Funded ≠ Completed.**
 
 ---
 
@@ -101,13 +103,13 @@ Until admin approves, donors do not see the proposal for voting (off-chain gate 
 
 | Step | Actor | Action |
 |------|-------|--------|
-| 1 | Anyone | After deadline, call `finalizeCampaign` if goal not met |
-| 2 | Core | Status → **Failed** |
-| 3 | Donor | Campaign page shows **Claim refund** when `canRefund` returns eligible |
-| 4 | Donor | Sign `claimRefund(campaignId)` |
-| 5 | Vault | Returns proportional remaining escrow (adjusted if milestones partially released) |
+| 1 | Anyone | After deadline with goal not met, call `finalizeCampaign` → **Failed** |
+| 1b | Anyone | After all milestones released, call `finalizeCampaign` → **Successful/Completed** |
+| 2 | Donor | **Claim refund** only when Failed/Cancelled and `getRefundableAmount > 0` |
+| 3 | Donor | Sign `claimRefund(campaignId)` — proportional share of remaining escrow |
+| 4 | Vault | Uses `_remainingRefundWeight` for fair proportional refunds |
 
-**Cancel path (zero donors):** Org calls `cancelCampaign` — no refund needed (no donations).
+**Cancel path:** Org can cancel only with zero milestones released; admin can cancel after partial release (proportional refund).
 
 ---
 

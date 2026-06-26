@@ -237,7 +237,9 @@ Full workflows: [workflow.md](./workflow.md) · [charity-business-flow.md](./cha
 |---------|-----------|
 | Escrow integrity | Funds exit only via DAO release or donor refund |
 | Org gate | `ORG_ROLE` required for `createCampaign` |
-| Governance | Quadratic voting + 51% quorum + 24h timelock |
+| Governance | Quadratic voting + 51% quorum (cast/total power) + majority For + 24h timelock |
+| Campaign lifecycle | Funded (goal reached) ≠ Completed; finalize only when expired+underfunded OR all milestones done |
+| Refunds | Proportional via `_remainingRefundWeight`; only Failed/Cancelled |
 | Reentrancy | `ReentrancyGuard` on DonationVault |
 | Spam prevention | Campaign creation deposit |
 | Admin limits | Cannot drain escrow; can pause, close proposals, configure fees |
