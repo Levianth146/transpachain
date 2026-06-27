@@ -1,12 +1,12 @@
 # TranspaChain User Manual
 
-A complete guide to using transpachain.site on **Ethereum Sepolia testnet**. Professional English with Vietnamese section headers where noted for local teams.
+A complete guide to using transpachain.site on **Ethereum Sepolia testnet**. Complete English guide for donors, organizations, and administrators.
 
 > **Disclaimer:** TranspaChain is a demonstration platform. Do not send mainnet ETH or real assets. See [/legal](https://transpachain.site/legal).
 
 ---
 
-## 1. Platform overview | Tổng quan nền tảng
+## 1. Platform overview
 
 TranspaChain is a transparent charity platform where:
 
@@ -32,7 +32,7 @@ See also: [traditional-vs-transpachain.md](./traditional-vs-transpachain.md)
 
 ---
 
-## 2. Getting started | Bắt đầu
+## 2. Getting started
 
 ### Install MetaMask
 
@@ -64,7 +64,7 @@ For USDC campaigns, you need Sepolia test USDC at `0x1c7D4B196Cb0C7B01d743Fbc611
 
 ---
 
-## 3. For donors | Dành cho nhà tài trợ
+## 3. For donors
 
 ### Browse campaigns
 
@@ -82,6 +82,7 @@ Click a campaign card to open its detail page.
 | Milestone timeline | Pending / voting / released states |
 | Donate button | Open donation modal |
 | Voting panel | Active governance proposals for this campaign |
+| Evidence panel | **View full evidence** button opens image + description modal with IPFS link |
 | Claim refund | Appears when campaign failed and you are eligible |
 
 ### Donate with ETH
@@ -131,7 +132,7 @@ When a campaign **fails** (goal/deadline not met) or you are past deadline:
 
 ---
 
-## 4. For organizations | Dành cho tổ chức
+## 4. For organizations
 
 ### Become a verified organization
 
@@ -158,22 +159,23 @@ On your campaign detail page, **Organization actions** panel:
 
 | Action | When to use |
 |--------|-------------|
-| Submit milestone proof | Work completed — upload evidence, submit IPFS CID |
+| Submit milestone proof | Work completed — use **Upload to IPFS** to pin proof and auto-fill CID, or paste CID manually |
 | Extend deadline | Need more time (max 30 days per extension on-chain) |
 | Finalize | After deadline if goal not met → triggers Failed status |
 | Cancel | Only if zero donations |
 
 ### Submit milestone evidence
 
-1. Upload proof file (photos, reports, receipts) via the form.
-2. Backend pins to IPFS via Pinata → returns CID.
+1. In **Organization actions**, click **Upload to IPFS** on the milestone proof row (or paste a CID manually).
+2. Upload proof file (photos, reports, receipts) — backend pins via Pinata and fills the CID field.
 3. Submit proof on-chain → creates governance proposal.
-4. Admin reviews evidence → approves for public voting.
-5. Donors vote → if passed, funds release after timelock.
+4. Separately, submit evidence (image + description) for admin review.
+5. Admin approves evidence → donors can view full evidence and vote.
+6. If vote passes, funds release after timelock.
 
 ---
 
-## 5. For admins and verifiers | Quản trị viên
+## 5. For admins and verifiers
 
 The **Admin** tab appears in navigation only when your connected wallet has `ADMIN_ROLE`, `VERIFIER_ROLE`, or `DEFAULT_ADMIN_ROLE` on CharityCore.
 
@@ -205,7 +207,7 @@ If stats look wrong after contract redeploy, operators can trigger reconcile end
 
 ---
 
-## 6. Dashboard | Bảng điều khiển
+## 6. Dashboard
 
 Connect wallet at `/dashboard` to see:
 
@@ -221,7 +223,7 @@ Without a connected wallet, the page prompts you to connect MetaMask.
 
 ---
 
-## 7. Governance | Quản trị DAO
+## 7. Governance
 
 **Hub:** `/governance`  
 **Detail:** `/governance/[proposalId]`
@@ -238,7 +240,7 @@ Only wallets that donated to the campaign can vote.
 
 ---
 
-## 8. About and Legal | Giới thiệu & Pháp lý
+## 8. About and Legal
 
 ### About (`/about`)
 
@@ -258,7 +260,7 @@ Always read `/legal` before demonstrating to external stakeholders.
 
 ---
 
-## 9. Troubleshooting | Xử lý sự cố
+## 9. Troubleshooting
 
 ### MetaMask issues
 

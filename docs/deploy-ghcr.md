@@ -153,4 +153,4 @@ curl -s https://transpachain.site/api/health
 docker compose -f docker-compose.prod.yml logs frontend --tail 30
 ```
 
-Xem thêm: [deploy.md](./deploy.md) (backend, nginx, indexer).
+See also: [deploy.md](./deploy.md) (backend, nginx, indexer).

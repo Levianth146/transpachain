@@ -85,7 +85,7 @@ No application code changes — only `MONGODB_URI`.
 Set in backend `.env`:
 
 ```env
-DEPLOY_FROM_BLOCK=11102718
+DEPLOY_FROM_BLOCK=11146320
 INDEXER_LOG_CHUNK_SIZE=10
 ```
 

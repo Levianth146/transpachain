@@ -298,10 +298,10 @@ Coverage includes donation lifecycle, refunds, governance quorum/timelock, NFT t
 
 | Contract | Address |
 |----------|---------|
-| CharityCore | `0x8a5e023b16ab13939260492dAe72a0be1E597e1a` |
-| DonationVault | `0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32` |
-| GovernanceDAO | `0xCcAEaF248E536850877B9f948cB237Fe7885b513` |
-| ImpactNFT | `0xD651d3531a44ee7941bFE257c79F41d274E180A6` |
+| CharityCore | `0xCE017838BfE2785CB2458bb205770663bEB9b0B8` |
+| DonationVault | `0xEb421D07E885EeB2B8E9ea408FF284013F872Db1` |
+| GovernanceDAO | `0xd655d85ddACc386901487CE8E1ec45BD4F872A19` |
+| ImpactNFT | `0xF2556FcccaE36A6d8Da0C75a863CA7368FC6761a` |
 | USDC (Sepolia) | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
 
 Details: [deploy.md](./deploy.md)

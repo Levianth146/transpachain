@@ -36,13 +36,13 @@ Current Sepolia deployment:
 
 | Contract | Address |
 |----------|---------|
-| CharityCore | `0x8a5e023b16ab13939260492dAe72a0be1E597e1a` |
-| DonationVault | `0x68Bb9f5E1414b1a62372EbF02fdEe4c09fFc7C32` |
-| GovernanceDAO | `0xCcAEaF248E536850877B9f948cB237Fe7885b513` |
-| ImpactNFT | `0xD651d3531a44ee7941bFE257c79F41d274E180A6` |
+| CharityCore | `0xCE017838BfE2785CB2458bb205770663bEB9b0B8` |
+| DonationVault | `0xEb421D07E885EeB2B8E9ea408FF284013F872Db1` |
+| GovernanceDAO | `0xd655d85ddACc386901487CE8E1ec45BD4F872A19` |
+| ImpactNFT | `0xF2556FcccaE36A6d8Da0C75a863CA7368FC6761a` |
 
 - [ ] Root `.env` / frontend build-args match these addresses
-- [ ] `DEPLOY_FROM_BLOCK=11102718` (or current deploy block)
+- [ ] `DEPLOY_FROM_BLOCK=11146320` (or current deploy block)
 - [ ] Backend logs show indexer listening (not stuck in backfill loop)
 
 ### Browser
@@ -293,7 +293,7 @@ Detailed flow variants — pick 2–3 per session:
 
 ### Flow 3 note — demo CIDs
 
-Hardhat demo script may use placeholder CIDs (`QmMilestone0ProofCID`) not pinned on IPFS. UI shows "Demo proof" label. For live demos, upload real files via campaign evidence form or `POST /api/ipfs/upload`.
+Hardhat demo script may use placeholder CIDs (`QmMilestone0ProofCID`) not pinned on IPFS. UI shows "Demo proof" label. For live demos, use **Upload to IPFS** in Organization actions or `POST /api/ipfs/upload`.
 
 ---
 

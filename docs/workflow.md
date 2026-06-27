@@ -161,7 +161,7 @@ Requires appropriate deployment access (internal/admin tooling).
 |---------|---------|
 | Stats cards | ETH/USDC donated, campaigns supported, milestones released |
 | Donation history | Tx links to Sepolia Etherscan |
-| Impact NFT gallery | Tier badges per campaign |
+| Impact NFT gallery | Tier badges per campaign (view in MetaMask; refresh metadata if art is missing) |
 | Org profile form | For org wallets — submit onboarding application |
 | Notifications | Active proposals needing your vote |
 
