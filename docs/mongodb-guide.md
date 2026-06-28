@@ -63,6 +63,18 @@ db.campaigns.find().pretty()
 db.donations.find().limit(5).pretty()
 ```
 
+**Option C — evidence script (screenshots / portfolio)**
+
+From the monorepo root on EC2 or locally (with Docker mongo running):
+
+```bash
+./scripts/mongo-evidence.sh
+# production compose explicitly:
+COMPOSE_FILE=docker-compose.prod.yml ./scripts/mongo-evidence.sh
+```
+
+Prints collection counts, indexes, redacted sample documents, and DB stats in one bannered report.
+
 ## MongoDB Atlas (optional, recommended for portfolio)
 
 1. Create free M0 cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas).
