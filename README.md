@@ -13,7 +13,7 @@ TranspaChain makes charitable giving auditable. Donations lock in on-chain escro
 
 ### Sepolia demo disclaimer
 
-This project is a **testnet demonstration only**. Contracts hold test ETH and test USDC — not real money. Do not use TranspaChain for production fundraising without a full security audit and mainnet deployment. See the live [/legal](https://transpachain.site/legal) page and [docs/project-report.md](./docs/project-report.md) §10 for scope and limitations.
+This project is a **testnet demonstration only**. Contracts hold test ETH and test USDC — not real money. Do not use TranspaChain for production fundraising without a full security audit and mainnet deployment. See the live [/legal](https://transpachain.site/legal) page and [docs/project-report.md](./docs/project-report.md) §10 for scope and limitations
 
 ---
 
