@@ -1,6 +1,6 @@
 # TranspaChain
 
-> Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact
+> Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact.
 
 **Live demo:** https://transpachain.site  
 **Network:** Ethereum Sepolia testnet (`chainId` 11155111)
