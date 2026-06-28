@@ -1,4 +1,4 @@
-# TranspaChain
+# TranspaChain.
 
 > Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact.
 
