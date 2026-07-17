@@ -48,12 +48,18 @@ Copy `.env.example` → `.env` on EC2. Critical values:
 ```env
 # Production
 CORS_ORIGIN=https://transpachain.site
-ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+# Free public RPCs — no API key required. ALCHEMY_SEPOLIA_URL is an optional
+# paid-RPC alias that takes precedence when set; leave it empty otherwise.
+SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+SEPOLIA_RPC_FALLBACK_URL=https://sepolia.drpc.org
+ALCHEMY_SEPOLIA_URL=
 MONGODB_URI=mongodb://mongodb:27017/transpachain
 
-# Indexer — Sepolia contract deploy block (Etherscan). 0 = skip backfill.
-DEPLOY_FROM_BLOCK=11146320
+# Indexer — Sepolia contract deploy block (Etherscan). 0 = skip backfill (already done).
+DEPLOY_FROM_BLOCK=0
 INDEXER_LOG_CHUNK_SIZE=10
+# Live-poll interval (ms) — 60000 conserves public-RPC quota
+INDEXER_POLL_INTERVAL_MS=60000
 
 # Backend contract addresses
 CHARITY_CORE_ADDRESS=0xCE017838BfE2785CB2458bb205770663bEB9b0B8
@@ -62,7 +68,8 @@ GOVERNANCE_DAO_ADDRESS=0xd655d85ddACc386901487CE8E1ec45BD4F872A19
 IMPACT_NFT_ADDRESS=0xF2556FcccaE36A6d8Da0C75a863CA7368FC6761a
 
 # Frontend build-args (baked into client JS at docker build)
-NEXT_PUBLIC_ALCHEMY_KEY=your_key
+# Optional — leave empty to use free PublicNode/dRPC transports in the browser
+NEXT_PUBLIC_ALCHEMY_KEY=
 NEXT_PUBLIC_CHARITY_CORE_ADDRESS=0xCE017838BfE2785CB2458bb205770663bEB9b0B8
 NEXT_PUBLIC_DONATION_VAULT_ADDRESS=0xEb421D07E885EeB2B8E9ea408FF284013F872Db1
 NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS=0xd655d85ddACc386901487CE8E1ec45BD4F872A19
