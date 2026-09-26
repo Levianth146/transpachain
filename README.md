@@ -2,7 +2,6 @@
 
 > Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact.
 
-Demo was hosted on AWS EC2 and has been taken down. Run locally with docker compose up -d (see docs/deploy.md)
 ---
 
 ## Mission
