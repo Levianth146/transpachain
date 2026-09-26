@@ -2,9 +2,7 @@
 
 > Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact.
 
-**Live demo:** https://transpachain.site  
-**Network:** Ethereum Sepolia testnet (`chainId` 11155111)
-
+Demo was hosted on AWS EC2 and has been taken down. Run locally with docker compose up -d (see docs/deploy.md)
 ---
 
 ## Mission
@@ -146,7 +144,6 @@ Each technology and its role **in this project**:
 | **Docker Compose** | Orchestrates full stack from root `docker-compose.yml` |
 | **Docker Hub** | Hosts `cuongnguyen146/transpachain-frontend` and `transpachain-backend` images |
 | **Nginx** | TLS termination, `/api/` reverse proxy to backend, 10 MB upload limit |
-| **AWS EC2** | Production host for https://transpachain.site |
 | **Let's Encrypt** | TLS certificates referenced in `nginx/nginx.conf` |
 
 ---
