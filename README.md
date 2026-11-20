@@ -1,301 +1,235 @@
-# TranspaChain.
+<div align="center">
 
-> Transparent charity on Ethereum — milestone-based escrow, DAO governance, and verifiable impact.
+# TranspaChain 2.0 · Avalanche Fuji · Team1 Vietnam UniHack Topic 5
 
----
+**Transparent charity escrow with DAO approval, Safe 3/5 disbursement, and optional mock USDC yield**
 
-## Mission
+[![Avalanche Fuji](https://img.shields.io/badge/Avalanche-Fuji%20C--Chain%20(43113)-E84142?logo=avalanche)](https://testnet.snowtrace.io)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?logo=solidity)](https://soliditylang.org)
+[![Foundry](https://img.shields.io/badge/Foundry-forge%20test-000000)](https://getfoundry.sh)
+[![Next.js](https://img.shields.io/badge/Next.js-App%20Router-black?logo=next.js)](https://nextjs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-TranspaChain makes charitable giving auditable. Donations lock in on-chain escrow and release only when verified organizations prove milestone completion and donors approve via quadratic governance voting. Every transaction, vote, and fund release is traceable on Sepolia.
+*Topic 5 — transparent accounting & proof-of-spending on Avalanche*
 
-### Sepolia demo disclaimer
-
-This project is a **testnet demonstration only**. Contracts hold test ETH and test USDC — not real money. Do not use TranspaChain for production fundraising without a full security audit and mainnet deployment. See the live [/legal](https://transpachain.site/legal) page and [docs/project-report.md](./docs/project-report.md) §10 for scope and limitations
-
----
-
-## Key features
-
-- **Milestone escrow** — funds release in slices only after governance approval
-- **DAO governance** — quadratic donor voting (√donation weight) with 51% quorum and 24h timelock
-- **Impact NFTs** — Bronze / Silver / Gold ERC-721 badges per campaign donation tier
-- **Verified organizations** — admin-verified wallets (`ORG_ROLE`) required to create campaigns
-- **Evidence + IPFS** — milestone images pinned via Pinata; admin review before public vote; orgs can **Upload to IPFS** for milestone proof CIDs; donors view full evidence in a modal
-- **Multi-token donations** — ETH or Sepolia USDC
-- **Real-time indexing** — Alchemy event listener writes MongoDB; Socket.io pushes live updates
+</div>
 
 ---
 
-## Documentation
+## Problem → solution
 
-| Document | Description |
-|----------|-------------|
-| [project-report.md](./docs/project-report.md) | **Full project report** — architecture, stack analysis, workflows, security, testing |
-| [user-manual.md](./docs/user-manual.md) | User guide — donors, orgs, admins, troubleshooting |
-| [demo-guide.md](./docs/demo-guide.md) | Demo checklist, 10-minute script, Q&A prep |
-| [demo-script.md](./docs/demo-script.md) | Quick 5-minute demo reference card |
-| [architecture.md](./docs/architecture.md) | System overview, components, data flows, env vars |
-| [system-design.md](./docs/system-design.md) | Contracts, indexer, frontend Web3, security model |
-| [workflow.md](./docs/workflow.md) | End-to-end workflows (onboard → donate → vote → refund) |
-| [deploy.md](./docs/deploy.md) | **Primary deploy** — Docker Hub + EC2 |
-| [deploy-ghcr.md](./docs/deploy-ghcr.md) | Optional GHCR frontend deploy |
-| [smart-contracts-explained.md](./docs/smart-contracts-explained.md) | Contract FAQ and function reference |
-| [security-audit.md](./docs/security-audit.md) | Security analysis and Slither instructions |
-| [mongodb-guide.md](./docs/mongodb-guide.md) | MongoDB data flow, Compass, Atlas, indexedScope |
-| [donate-flow.md](./docs/donate-flow.md) | ETH/USDC donate and refund sequence diagrams |
-| [charity-business-flow.md](./docs/charity-business-flow.md) | Real-world charity vs on-chain mapping |
-| [traditional-vs-transpachain.md](./docs/traditional-vs-transpachain.md) | Comparison table for stakeholders |
-| [er-diagram.md](./docs/er-diagram.md) | MongoDB schema ER diagram |
+| Traditional charity pain | TranspaChain 2.0 |
+|---|---|
+| Donors cannot see where funds go | Public ledger + Snowtrace txs for every donation, approval, expense, refund |
+| Orgs can spend without oversight | Milestone proof → DAO vote → approve-only; money moves only via Safe 3/5 |
+| Single-signer treasury risk | Gnosis Safe threshold 3 of 5 owners for `executeDisbursement` |
+| Idle USDC earns nothing | Opt-in yield via `YieldManager` + Mock ERC-4626 (testnet demo) |
+| “Receipt” claims are unverifiable | SHA-256 + IPFS CID on-chain; public `/expenses/[id]` verify-my-file UI |
+| Opaque refunds after cancel/fail | `settleYieldForRefund` then proportional `claimRefunds` |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              Browser — Next.js 16 · wagmi v2 · viem         │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTPS / WSS
-                ┌──────────┴──────────┐
-                │  Nginx :443 (TLS)   │
-                │  / → frontend       │
-                │  /api → backend     │
-                └──────────┬──────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         │                                   │
-  ┌──────┴──────┐                    ┌───────┴───────┐
-  │ Backend     │                    │ Frontend      │
-  │ :3001       │                    │ :3000         │
-  │ Express     │                    │ Next.js       │
-  └──────┬──────┘                    └───────────────┘
-         │
-         ├── MongoDB (indexed events + profiles)
-         ├── Alchemy indexer (ethers.js v6)
-         ├── Pinata IPFS (metadata + evidence)
-         └── Socket.io (real-time UI)
-                  │
-                  ▼
-         Ethereum Sepolia
-         ┌─────────────────────────┐
-         │ CharityCore             │
-         │ DonationVault           │
-         │ GovernanceDAO           │
-         │ ImpactNFT               │
-         └─────────────────────────┘
+┌──────────────────────────┐     ┌──────────────────────────┐
+│  Frontend (Vercel)       │     │  Backend (Render)        │
+│  Next.js · wagmi · viem  │────►│  Express · ethers v6     │
+│  YOUR_VERCEL_URL         │     │  Indexer + Module B API  │
+└────────────┬─────────────┘     │  YOUR_RENDER_URL         │
+             │                   └────────────┬─────────────┘
+             │                                │
+             │                   ┌────────────▼─────────────┐
+             │                   │  MongoDB Atlas (M0)      │
+             │                   │  DB: transpachain-fuji-v2│
+             │                   └────────────┬─────────────┘
+             │                                │ eth_getLogs
+             ▼                                ▼
+┌────────────────────────────────────────────────────────────┐
+│              Avalanche Fuji C-Chain (43113)                │
+│  CharityCore · DonationVault · GovernanceDAO · ImpactNFT │
+│  DisbursementController · YieldManager · MockERC4626       │
+│  Safe 3/5 · Circle USDC                                    │
+└────────────────────────────────────────────────────────────┘
 ```
 
-Full diagrams and data flows: [docs/architecture.md](./docs/architecture.md) · [docs/project-report.md](./docs/project-report.md)
+---
+
+## End-to-end flow
+
+```
+Donate (AVAX or USDC)
+    → Escrow in DonationVault
+    → [opt-in USDC] YieldManager.allocate → MockERC4626
+    → Org submits milestone proof (IPFS CID)
+    → Donors vote For (quorum)
+    → Queue + timelock (120s on this Fuji deploy)
+    → DAO execute = approve only (no transfer)
+    → Org requestDisbursement (+ receipt SHA-256 / CID)
+    → 3 of 5 Safe owners sign (EIP-712, off-chain)
+    → executeDisbursement → expense + receipt hash on public ledger
+    → /expenses/[id] · /transparency · CSV export
+
+Cancel / fail path:
+    settleYieldForRefund → redeem mock vault → claimRefunds (proportional)
+```
 
 ---
 
-## Tech stack
+## Live Fuji V2 contracts
 
-Each technology and its role **in this project**:
-
-### Frontend (`transpachain-frontend`)
-
-| Technology | Version | What it does here |
-|------------|---------|-------------------|
-| **Next.js** | 16.2 | App Router pages: campaigns, governance, dashboard, admin; production build baked into Docker image |
-| **React** | 18.3 | UI components — donate modal, org actions, governance vote panel, NFT gallery |
-| **TypeScript** | 5.x | Typed hooks (`useCharityCore`, `useDonationVault`), API client, contract ABIs |
-| **Tailwind CSS** | 3.4 | Dark holo-mint glass theme — campaign cards, glass panels, responsive layout |
-| **wagmi** | 2.9 | Wallet connect, `useReadContract` / `useWriteContract` for all on-chain transactions |
-| **viem** | 2.13 | Sepolia chain config, Alchemy HTTP transport, transaction encoding |
-| **ethers** | — | (via wagmi) ABI decoding for contract reads in campaign detail |
-| **@tanstack/react-query** | 5.40 | Cached contract state behind wagmi hooks |
-| **Socket.io client** | 4.8 | Live donation feed on homepage; admin panel updates |
-| **framer-motion** | 12.40 | Page transitions, org action panel animations |
-| **@phosphor-icons/react** | 2.1 | Icons across navigation, evidence, governance UI |
-| **next-themes** | 0.4 | Dark/light mode toggle |
-
-### Backend (`transpachain-backend`)
-
-| Technology | Version | What it does here |
-|------------|---------|-------------------|
-| **Node.js** | 20+ | Runtime for API server and blockchain indexer |
-| **Express** | 4.19 | REST routes: `/campaigns`, `/donations`, `/proposals`, `/orgs`, `/evidence`, `/admin`, `/ipfs` |
-| **TypeScript** | 5.x | Typed routes, Mongoose models, indexer event handlers |
-| **MongoDB** | 7 (Docker) | Persists indexed chain events + off-chain org profiles and evidence |
-| **Mongoose** | 8.4 | Schemas: `campaigns`, `donations`, `proposals`, `verifiedorgs`, `orgprofiles`, `evidence` |
-| **ethers.js** | 6.16 | Alchemy WebSocket/HTTP event listener; `indexedScope` on-chain reads |
-| **Socket.io** | 4.7 | Emits `donationReceived`, `campaignUpdated`, `proposalUpdated` to frontend |
-| **Alchemy** | — | Sepolia RPC + WebSocket for indexer; RPC health rotation on failure |
-| **Pinata SDK** | 2.1 | Pins campaign metadata JSON and evidence images to IPFS |
-| **multer** | 2.1 | In-memory file upload buffer for `POST /ipfs/upload` (max 10 MB) |
-| **express-rate-limit** | 8.5 | 120 requests/minute per IP on all API routes |
-
-### Smart contracts (`transpachain-contracts`)
-
-| Technology | Version | What it does here |
-|------------|---------|-------------------|
-| **Solidity** | 0.8.20 | Four core contracts: CharityCore, DonationVault, GovernanceDAO, ImpactNFT |
-| **Foundry** | — | **307 tests** — unit, fuzz, and full lifecycle integration |
-| **Hardhat** | 2.22 | Sepolia deployment scripts and Etherscan verification |
-| **OpenZeppelin** | 5.6 | `AccessControl`, `ReentrancyGuard`, `ERC721` for roles and NFT badges |
-
-### DevOps & infrastructure
-
-| Technology | What it does here |
-|------------|-------------------|
-| **Docker** | Containerizes frontend, backend, MongoDB, nginx on EC2 |
-| **Docker Compose** | Orchestrates full stack from root `docker-compose.yml` |
-| **Docker Hub** | Hosts `cuongnguyen146/transpachain-frontend` and `transpachain-backend` images |
-| **Nginx** | TLS termination, `/api/` reverse proxy to backend, 10 MB upload limit |
-| **Let's Encrypt** | TLS certificates referenced in `nginx/nginx.conf` |
-
----
-
-## Smart contracts (Sepolia)
-
-Addresses from [`.env.example`](./.env.example):
+Source of truth: [`contracts/deployments/43113.json`](contracts/deployments/43113.json) → `deployments.v2`  
+**Deploy block:** `61364951` · **Governance:** voting `300s` / timelock `120s`  
+**Explorer:** [testnet.snowtrace.io](https://testnet.snowtrace.io)
 
 | Contract | Address |
-|----------|---------|
-| CharityCore | `0xCE017838BfE2785CB2458bb205770663bEB9b0B8` |
-| DonationVault | `0xEb421D07E885EeB2B8E9ea408FF284013F872Db1` |
-| GovernanceDAO | `0xd655d85ddACc386901487CE8E1ec45BD4F872A19` |
-| ImpactNFT | `0xF2556FcccaE36A6d8Da0C75a863CA7368FC6761a` |
-| USDC (Sepolia) | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
+|---|---|
+| CharityCore | [`0xFc71b91e360DB771F81aD3594023Be35D85C613b`](https://testnet.snowtrace.io/address/0xFc71b91e360DB771F81aD3594023Be35D85C613b) |
+| DonationVault | [`0x671bE113Cd8C1981D19910Bea2718aa73DC83D5b`](https://testnet.snowtrace.io/address/0x671bE113Cd8C1981D19910Bea2718aa73DC83D5b) |
+| GovernanceDAO | [`0xC8f15c5eE83998897615b851a03f044712b0e016`](https://testnet.snowtrace.io/address/0xC8f15c5eE83998897615b851a03f044712b0e016) |
+| ImpactNFT | [`0x0fA0613bD0Ef0520851f1F515C894D7D80Df2210`](https://testnet.snowtrace.io/address/0x0fA0613bD0Ef0520851f1F515C894D7D80Df2210) |
+| DisbursementController | [`0xb61c688D64564960958181Dfc5cD4164730125E6`](https://testnet.snowtrace.io/address/0xb61c688D64564960958181Dfc5cD4164730125E6) |
+| YieldManager | [`0x64b5B7e14000FFAF68f84f11Ec4685812eC9deF9`](https://testnet.snowtrace.io/address/0x64b5B7e14000FFAF68f84f11Ec4685812eC9deF9) |
+| MockERC4626Vault | [`0xDefbf3f47c1e15bb4A875daADbB469Fa115bC75A`](https://testnet.snowtrace.io/address/0xDefbf3f47c1e15bb4A875daADbB469Fa115bC75A) |
+| Safe (3/5) | [`0xf2dD6eF266E9775a9fC9Cf934b3bC2680076737A`](https://testnet.snowtrace.io/address/0xf2dD6eF266E9775a9fC9Cf934b3bC2680076737A) |
+| USDC (Circle Fuji) | [`0x5425890298aed601595a70AB815c96711a31Bc65`](https://testnet.snowtrace.io/address/0x5425890298aed601595a70AB815c96711a31Bc65) |
 
-### Test coverage
-
-**307 / 307 Foundry tests passing** — unit, fuzz, and integration across the full donation lifecycle.
-
-```bash
-make contracts-test   # from monorepo root
-```
-
-Details: [docs/smart-contracts-explained.md](./docs/smart-contracts-explained.md)
+**Primary vault (Snowtrace):** https://testnet.snowtrace.io/address/0x671bE113Cd8C1981D19910Bea2718aa73DC83D5b
 
 ---
 
-## Frontend routes
+## Hosted demo (fill after deploy)
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Homepage — stats, FAQ, featured campaigns, live WebSocket donation feed |
-| `/campaigns` | Campaign list with category/status filters |
-| `/campaigns/[id]` | Campaign detail — donate, escrow card, org actions, evidence modal, voting |
-| `/campaigns/create` | Create campaign (verified org only) — IPFS metadata + on-chain tx |
-| `/dashboard` | Donor summary, donation history, Impact NFT gallery, org profile form |
-| `/governance` | Governance proposal hub |
-| `/governance/[proposalId]` | Vote, queue, execute proposal |
-| `/admin` | Admin panel — verify orgs, review profiles/evidence/proposals (role-gated) |
-| `/about` | Mission, team, anti-abuse policy |
-| `/legal` | Testnet disclaimer, contract addresses, Etherscan links |
+| Layer | URL |
+|---|---|
+| Frontend | `YOUR_VERCEL_URL` |
+| Backend API | `YOUR_RENDER_URL` |
+| API health | `YOUR_RENDER_URL/health` |
 
-User guide: [docs/user-manual.md](./docs/user-manual.md)
-
----
-
-## API endpoints
-
-Proxied at `https://transpachain.site/api/*` via nginx (`/api/` → backend `/:route`).
-
-| Prefix | Description |
-|--------|-------------|
-| `GET /health` | Mongo, RPC, indexer sync status |
-| `GET /campaigns` | List, stats, detail, proposals, donations |
-| `GET /donations` | Campaign and donor donation history |
-| `GET /proposals` | Governance proposals |
-| `GET/POST /orgs` | Organization profiles |
-| `GET/POST /evidence` | Milestone evidence submissions |
-| `GET/PATCH /admin/*` | Admin workflows + reconcile |
-| `POST /ipfs/metadata` | Pin campaign metadata JSON to Pinata |
-| `POST /ipfs/upload` | Upload evidence/campaign image to Pinata |
-| `GET /ipfs/:cid` | Proxy-fetch IPFS JSON (avoids browser CORS) |
+See [docs/hosting.md](docs/hosting.md) for Vercel / Render / Atlas setup.
 
 ---
 
 ## Repository structure
 
-Monorepo with Git submodules:
-
 ```
-transpachain/                    # Root — Docker, nginx, docs, Makefile
-├── docker-compose.yml           # Full stack orchestration
-├── nginx/nginx.conf             # TLS, /api proxy, upload size limit
-├── docs/                        # Documentation (see table above)
-├── Makefile                     # docker-build-frontend, contracts-test, …
-├── .env.example                 # Production env template (addresses, keys)
-├── backend/   → transpachain-backend    # Express API + Alchemy indexer
-├── frontend/  → transpachain-frontend   # Next.js dApp
-└── contracts/ → transpachain-contracts # Solidity + Foundry/Hardhat
+transpachain/                          ← submission root (this repo)
+├── contracts/                         ← submodule: transpachain-contracts (Foundry + Hardhat)
+│   ├── src/                           CharityCore, DonationVault, GovernanceDAO, ImpactNFT,
+│   │                                  DisbursementController, YieldManager, MockERC4626Vault
+│   ├── deployments/43113.json         Fuji V1 (history) + V2 (active)
+│   ├── hardhat/scripts/               create-safe.ts, deploy-v2.ts, check-v2.ts
+│   └── test/                          Foundry unit + fuzz
+├── frontend/                          ← submodule: transpachain-frontend (Next.js)
+│   ├── app/                           campaigns, governance, /transparency, /expenses/[id]
+│   └── lib/                           chain + ABIs + Fuji addresses
+├── backend/                           ← submodule: transpachain-backend (Express)
+│   └── src/                           indexer, Module B ledger APIs, Safe sig store
+└── docs/                              Topic 5 docs (demo, deploy, hosting, ADRs, security)
 ```
 
 Clone with submodules:
 
-```bash
-git clone --recurse-submodules https://github.com/Levianth146/transpachain.git
+```powershell
+git clone --recurse-submodules https://github.com/Levianth146/transpachain
+cd transpachain
 ```
 
 ---
 
-## Quick start
+## Local run
 
 ### Prerequisites
 
 - Node.js 20+
-- Docker + Docker Compose
-- MetaMask configured for Sepolia testnet
+- Docker (MongoDB)
+- MetaMask on **Avalanche Fuji** with test AVAX + Circle USDC
+- Foundry via **WSL** (Windows PATH often missing `forge`)
 
-### Local development
+### PowerShell — apps
 
-```bash
-git clone --recurse-submodules https://github.com/Levianth146/transpachain.git
-cd transpachain
+```powershell
+# Mongo
+docker start transpachain-mongo
+# or: docker run -d --name transpachain-mongo -p 27017:27017 -v transpachain_mongo_data:/data/db mongo:7.0
 
-cp .env.example .env
-# Fill ALCHEMY_SEPOLIA_URL, PINATA keys, NEXT_PUBLIC_ALCHEMY_KEY
+# Backend (DB name transpachain-fuji-v2)
+cd backend   # or backend/transpachain-backend depending on checkout
+copy .env.example .env   # fill Pinata + addresses if needed
+npm install
+npm run dev              # http://localhost:3001
 
-docker compose up -d
-
-# Optional: seed demo data
-cd backend && npm run seed
+# Frontend
+cd ..\frontend
+copy .env.example .env.local
+npm install
+npm run dev              # http://localhost:3000
 ```
 
-**Access:** http://localhost
-
-### Deploy to production (Docker Hub + EC2)
-
-1. **WSL / dev machine** — build and push frontend image:
+### WSL — contracts
 
 ```bash
-make docker-build-frontend
-docker push cuongnguyen146/transpachain-frontend:latest
+cd /mnt/d/Projects/transpachain/contracts   # adjust path to your clone
+forge test -vv
 ```
 
-2. **EC2** — pull and restart:
-
-```bash
-cd ~/transpachain
-git pull && git submodule update --init --recursive
-docker compose pull
-docker compose up -d
-```
-
-Full guide: [docs/deploy.md](./docs/deploy.md)
+Indexer RPC tip: prefer PublicNode (`https://avalanche-fuji-c-chain-rpc.publicnode.com`) to avoid public API `429`s.
 
 ---
 
-## Contributing
+## Docs index (Topic 5)
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Doc | Purpose |
+|---|---|
+| [docs/fuji-deployment.md](docs/fuji-deployment.md) | `create-safe` + `deploy-v2`, env vars, verify, manifest |
+| [docs/hosting.md](docs/hosting.md) | Atlas → Render → Vercel checklist |
+| [docs/demo-topic5.md](docs/demo-topic5.md) | G4 E2E checklist (fill tx hashes) |
+| `contracts/hardhat/scripts/e2e-fuji.ts` | Automated Fuji G4 run (`npx hardhat run … --network fuji`) |
+| [docs/transparent-accounting.md](docs/transparent-accounting.md) | Ledger classifications + identity equation |
+| [docs/security-limitations.md](docs/security-limitations.md) | Testnet / mock / demo honesty |
+| [docs/architecture.md](docs/architecture.md) | Avalanche V2 architecture pointer |
+| [docs/adr/](docs/adr/) | ADRs 0001–0003 |
+
+---
+
+## Limitations / roadmap
+
+**Deferred past UniHack deadline**
+
+- PDF export (CSV only today)
+- SIWE on write endpoints (signed-message checks where trivial)
+- Full reorg rollback (use `INDEXER_CONFIRMATIONS` depth instead)
+
+**Honest demo constraints**
+
+- Mock ERC-4626 yield — UI shows a **Mock Yield** badge; not a real DeFi product
+- Receipt hash ≠ delivery / impact proof — only that a specific file was committed
+- Safe owners for the hackathon demo are team-held MetaMask keys (documented in security limitations)
+
+See [docs/security-limitations.md](docs/security-limitations.md).
+
+---
+
+## Security (high level)
+
+On-chain: `ReentrancyGuard`, pull refunds, one-time `setDisbursementController` / `setYieldManager`, DAO approve-only, Safe-gated payouts, `LOSS_SINK = dEaD` for mock loss.
+
+This is **Fuji testnet software** — not audited, not for real money. Production use in Vietnam requires legal review.
+
+---
+
+## Tech stack
+
+| Layer | Stack |
+|---|---|
+| Contracts | Solidity 0.8.20, Foundry, Hardhat, OpenZeppelin 5.x, Safe 1.4.1 |
+| Frontend | Next.js App Router, wagmi v2, viem, Tailwind |
+| Backend | Node.js, Express, ethers v6, MongoDB, Socket.io, Pinata |
+| Hosting | Vercel + Render + MongoDB Atlas M0 |
+| Chain | Avalanche Fuji C-Chain · Circle USDC |
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
-
----
-
-## Disclaimer
-
-TranspaChain runs on **Sepolia testnet only** for demonstration and academic purposes. Contracts are not audited for mainnet use. Do not send real funds. See [/legal](https://transpachain.site/legal).
+MIT © TranspaChain / Team1 Vietnam UniHack contributors
