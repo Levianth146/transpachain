@@ -1,4 +1,7 @@
-# Fuji V2 deployment — create-safe + deploy-v2
+# Fuji V2 deployment — create Safe + deploy contracts
+
+**Audience:** developers redeploying or verifying the protocol on Avalanche Fuji.  
+**Product overview:** [../README.md](../README.md) · **addresses live today:** see root README contract table.
 
 Active stack: Avalanche Fuji C-Chain (`43113`), deploy block **61364951**.  
 Manifest: `contracts/deployments/43113.json` → `deployments.v2`.

@@ -1,38 +1,38 @@
-# Hosting — Atlas → Render → Vercel
+# Hosting guide — Atlas → Render → Vercel → Domain
 
-Order matters: database first, then API (needs Mongo + RPC), then frontend (needs public API URL + contract addresses).
+Order matters: **database → API → frontend → CORS/domain**.  
+Never commit real connection strings, API keys, or private keys.
 
-Replace placeholders after each service is live. Do **not** commit real connection strings, API keys, or private keys.
-
-| Service | Placeholder |
-|---|---|
-| Frontend | `YOUR_VERCEL_URL` |
-| Backend | `YOUR_RENDER_URL` |
+| Service | Production role | Typical URL |
+|---|---|---|
+| MongoDB Atlas | Ledger / campaign cache | (private URI) |
+| Render | Backend + indexer | `https://YOUR_RENDER_URL` |
+| Vercel | Frontend | `https://www.transpachain.site` |
+| Namecheap | DNS for `transpachain.site` | apex + `www` |
 
 ---
 
 ## 1. MongoDB Atlas (M0)
 
-1. Create a free **M0** cluster.
-2. Database user + Network Access (allow Render egress IPs, or `0.0.0.0/0` for hackathon demo with strong password).
-3. Create / use database name: **`transpachain-fuji-v2`** (separate from any v1 DB).
-4. Connection string form:
+1. Create a free **M0** cluster.  
+2. Create a DB user; open Network Access (Render IPs, or `0.0.0.0/0` for a short demo with a strong password).  
+3. Database name: **`transpachain-fuji-v2`** (keep separate from any older DB).  
+4. Connection string:
 
 ```text
 mongodb+srv://USER:PASS@CLUSTER.mongodb.net/transpachain-fuji-v2?retryWrites=true&w=majority
 ```
 
-Store as `MONGODB_URI` on Render only.
+Store only as `MONGODB_URI` on Render (and local `.env`).
 
 ---
 
 ## 2. Render — backend (Docker)
 
-- **Root / repo:** backend submodule (`transpachain-backend`)
-- **Dockerfile:** `backend/Dockerfile` (Node 20 multi-stage → `npm run start` on port `3001`)
-- **Health check path:** `/health`
+- Source: `backend/` (Dockerfile multi-stage, Node 20, port `3001`)  
+- Health check: `/health`
 
-### Env list (Render)
+### Environment
 
 ```text
 PORT=3001
@@ -62,24 +62,18 @@ INDEXER_CONFIRMATIONS=3
 
 PINATA_API_KEY=...
 PINATA_SECRET_KEY=...
-CORS_ORIGIN=https://YOUR_VERCEL_URL
+CORS_ORIGIN=https://www.transpachain.site
 ```
 
-Notes:
-
-- Set `CORS_ORIGIN` to the exact Vercel origin (scheme + host, no trailing slash mismatch).
-- After first Vercel URL is known, update `CORS_ORIGIN` and redeploy backend if needed.
-- Confirm `/health` reports `chainId: 43113` and indexer is advancing past `61364951`.
+After the frontend URL is final, set `CORS_ORIGIN` to that exact origin (scheme + host, no trailing slash) and redeploy. Confirm `/health` reports `chainId: 43113` and `asOfBlock` past `61364951`.
 
 ---
 
 ## 3. Vercel — frontend
 
-- **Root Directory:** `frontend` (or the frontend submodule root in a monorepo import)
-- **Framework:** Next.js
-- **Build:** default `next build`
-
-### Env list (all `NEXT_PUBLIC_*`)
+- Root directory: `frontend`  
+- Framework: Next.js · build: `next build`  
+- All `NEXT_PUBLIC_*` values are **baked at build time** — change → redeploy.
 
 ```text
 NEXT_PUBLIC_CHAIN_ID=43113
@@ -95,22 +89,47 @@ NEXT_PUBLIC_DISBURSEMENT_SAFE=0xf2dD6eF266E9775a9fC9Cf934b3bC2680076737A
 NEXT_PUBLIC_BACKEND_URL=https://YOUR_RENDER_URL
 ```
 
-`NEXT_PUBLIC_*` values are baked at build time — change address/URL → **redeploy**.
-
-Optional: leave `NEXT_PUBLIC_RPC_URL` empty to use the app’s Fuji defaults + PublicNode fallback.
+Leave `NEXT_PUBLIC_RPC_URL` empty to use built-in Fuji public RPCs + fallback.
 
 ---
 
-## Checklist (strict order)
+## 4. Custom domain — `transpachain.site`
 
-1. [ ] Atlas M0 up · DB name `transpachain-fuji-v2` · URI copied
-2. [ ] Render Docker service · env set · `/health` OK · indexer syncing
-3. [ ] Note `YOUR_RENDER_URL`
-4. [ ] Vercel project · root `frontend` · all `NEXT_PUBLIC_*` set · `NEXT_PUBLIC_BACKEND_URL` = Render
-5. [ ] Note `YOUR_VERCEL_URL`
-6. [ ] Update Render `CORS_ORIGIN` → Vercel origin · redeploy if needed
-7. [ ] Smoke: connect MetaMask Fuji · load campaigns · `/transparency` returns data
-8. [ ] Paste both URLs into README / pitch (replace placeholders)
+Vercel project domains:
+
+- `transpachain.site` → production  
+- `www.transpachain.site` → production (serves the app; preferred if ISP caches apex slowly)
+
+### Namecheap → Advanced DNS
+
+| Type | Host | Value |
+|---|---|---|
+| **A** | `@` | `216.198.79.1` |
+| **A** | `@` | `64.29.17.1` |
+| **CNAME** | `www` | `335150b82d8f059e.vercel-dns-017.com.` |
+
+Remove any old A record pointing at AWS / parking IPs (e.g. `54.253.x.x`).
+
+**If apex times out but docs say DNS is “correct”:** public resolvers (`8.8.8.8` / `1.1.1.1`) may already show Vercel IPs while your ISP still caches the old A record. Use **https://www.transpachain.site**, flush DNS (`ipconfig /flushdns` as Admin), or switch the machine DNS to Cloudflare/Google. Verify:
+
+```bash
+nslookup transpachain.site 8.8.8.8
+```
+
+Expected addresses: `216.198.79.1` and `64.29.17.1`.
+
+Also set Render `CORS_ORIGIN` to `https://www.transpachain.site` (and/or apex) and redeploy the backend.
+
+---
+
+## 5. Go-live checklist
+
+1. [ ] Atlas M0 · DB `transpachain-fuji-v2` · URI ready  
+2. [ ] Render Docker · env set · `/health` OK · indexer syncing  
+3. [ ] Vercel · all `NEXT_PUBLIC_*` · `NEXT_PUBLIC_BACKEND_URL` = Render  
+4. [ ] Render `CORS_ORIGIN` matches the live frontend origin  
+5. [ ] Domain DNS as above · smoke https://www.transpachain.site  
+6. [ ] MetaMask Fuji · campaigns load · `/transparency` returns data without a wallet  
 
 ---
 
@@ -119,14 +138,14 @@ Optional: leave `NEXT_PUBLIC_RPC_URL` empty to use the app’s Fuji defaults + P
 | Concern | Local | Hosted |
 |---|---|---|
 | Mongo | Docker `localhost:27017/transpachain-fuji-v2` | Atlas M0 |
-| Backend | `npm run dev` `:3001` | Render Docker |
+| Backend | `npm run dev` `:3001` | Render |
 | Frontend | `npm run dev` `:3000` | Vercel |
-| CORS | `http://localhost:3000` | `https://YOUR_VERCEL_URL` |
+| CORS | `http://localhost:3000` | Live site origin |
 
 ---
 
 ## Related
 
-- [fuji-deployment.md](./fuji-deployment.md)
-- [demo-topic5.md](./demo-topic5.md)
-- [security-limitations.md](./security-limitations.md)
+- [fuji-deployment.md](./fuji-deployment.md)  
+- [architecture.md](./architecture.md)  
+- [../README.md](../README.md)

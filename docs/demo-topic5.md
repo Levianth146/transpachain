@@ -1,8 +1,12 @@
 # Demo checklist — Topic 5 G4 (E2E on Fuji V2)
 
+**What this file is:** a *runbook* for the live judge demo / recording — not the product pitch.  
+For “what is TranspaChain?”, start at [../README.md](../README.md).
+
 Fill every **Tx hash** and **Snowtrace URL** during the live run.  
 Network: Avalanche Fuji (`43113`). Manifest: `contracts/deployments/43113.json` → `deployments.v2` (block `61364951`).  
-Timelock on this deploy: **120 seconds**. Voting window: **300 seconds**.
+Timelock on this deploy: **120 seconds**. Voting window: **300 seconds**.  
+Live site: [https://www.transpachain.site](https://www.transpachain.site)
 
 ---
 

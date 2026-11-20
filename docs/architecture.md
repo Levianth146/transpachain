@@ -1,59 +1,115 @@
-# TranspaChain 2.0 — Architecture (Avalanche Fuji V2)
+# Architecture — TranspaChain 2.0
 
-> Sepolia / ETH-only diagrams are obsolete. Active stack = **Fuji V2** (deploy block `61364951`).  
-> Full Topic 5 docs: [README](../README.md) · [fuji-deployment.md](./fuji-deployment.md) · [transparent-accounting.md](./transparent-accounting.md) · [adr/](./adr/).
+Active environment: **Avalanche Fuji C-Chain** (`43113`), deploy block **`61364951`** (`deployments.v2`).  
+Product overview: [../README.md](../README.md)
 
-## Runtime topology
+---
 
-```
+## 1. What each layer owns
+
+| Layer | Responsibility | Not responsible for |
+|---|---|---|
+| **Smart contracts** | Custody, permissions, votes, payouts, NFT mint rules | Pretty titles, search, image CDN |
+| **Backend indexer** | Watch logs → Mongo ledger/cache; REST + Socket.io | Moving money |
+| **Frontend** | UX, wallet txs, public audit views, live `eth_call` reads | Being the source of truth for balances |
+| **IPFS / Pinata** | Store evidence & receipt files; return CIDs | Proving real-world delivery |
+| **Safe 3/5** | Threshold execution of disbursements | Creating campaign policy |
+
+---
+
+## 2. Runtime topology
+
+```text
 Browser + MetaMask (Fuji)
         │
-        ├─► Frontend (Vercel / localhost:3000)  — wagmi writes to C-Chain
-        │         │
-        │         └─► Backend REST (Render / :3001)  — reads Mongo cache
-        │                    │
-        │                    ├─► MongoDB Atlas `transpachain-fuji-v2`
-        │                    └─► PublicNode RPC eth_getLogs (indexer)
+        ├─► Frontend (Vercel / localhost:3000)
+        │         │  wagmi writes → C-Chain
+        │         └─► Backend REST (Render / :3001)
+        │                    ├─► MongoDB `transpachain-fuji-v2`
+        │                    └─► RPC eth_getLogs (indexer)
         ▼
-Avalanche Fuji C-Chain
+Avalanche Fuji
   CharityCore · DonationVault · GovernanceDAO · ImpactNFT
   DisbursementController · YieldManager · MockERC4626Vault
   Safe 3/5 · Circle USDC
 ```
 
-## Contract relationships (V2)
+---
 
-```
+## 3. Contract graph (Module A / B / C)
+
+```text
 CharityCore ── lifecycle ──► DonationVault
                                  │
-                    ┌────────────┼────────────────┐
-                    ▼            ▼                ▼
-              GovernanceDAO  YieldManager   DisbursementController
-              (approve only)  └─ Mock4626         └─ Safe 3/5 execute
-                    │                                  │
-                    └── approveMilestone ──► request ──► payout + receiptHash
+                 ┌───────────────┼────────────────┐
+                 ▼               ▼                ▼
+           GovernanceDAO   YieldManager    DisbursementController
+           (approve only)  └─ Mock4626           └─ Safe 3/5 execute
+                 │                                    │
+                 └── approveMilestone ──► request ──► payout + receiptHash
 ```
 
-## On-chain vs off-chain
+| Module | Contracts | Behavior |
+|---|---|---|
+| **A — Safe disbursement** | GovernanceDAO, DonationVault, DisbursementController, Safe | Vote → approve → request → multi-sig execute |
+| **B — Accounting** | (indexer + APIs over events from all of the above) | Public ledger, expenses, finance CSV |
+| **C — Mock yield** | YieldManager, MockERC4626Vault | USDC opt-in idle capital only |
+
+---
+
+## 4. On-chain vs off-chain data
 
 | Data | Where | Why |
 |---|---|---|
-| Campaign / escrow / votes / approvals | C-Chain contracts | Trustless money + permission |
-| Disbursement requests + receipt hash/CID | DisbursementController | Public proof-of-commitment |
-| Safe threshold execution | Gnosis Safe | Multisig custody |
-| Titles, media, search, ledger cache | Mongo + IPFS | Gas / UX |
-| Yield share balances (mock) | MockERC4626 | Demo NAV; not real DeFi |
+| Escrow, votes, approvals, NFT ownership | C-Chain | Trustless money & rights |
+| Disbursement requests + receipt hash/CID | DisbursementController | Public commitment |
+| Titles, media, search, aggregated ledger | Mongo (+ IPFS for blobs) | Gas & UX |
+| Mock vault share balances | MockERC4626 | Demo NAV — not real DeFi |
 
-## Data flow
+**Reconciliation rule:** if Mongo and chain disagree, **chain wins**. UI surfaces both (live reads + indexed cache) so reviewers can spot lag.
 
+---
+
+## 5. Write / read paths
+
+```text
+Write:  UI → wallet → Fuji tx → event log
+Read:   UI → Backend → Mongo          (fast list/search)
+        UI → wagmi eth_call           (money / progress / policy)
+Audit:  Snowtrace + /transparency + campaign finance export
 ```
-Write: UI → MetaMask → Fuji tx → event
-Read (fast): UI → Backend → Mongo (indexer lag bounded by confirmations)
-Reconcile: Snowtrace + /transparency + CSV
-```
 
-## See also
+Indexer settings (typical): chunked `eth_getLogs`, confirmations depth (default **3**), poll interval ~15s. Sync status is exposed on health/transparency payloads (`chainId`, `asOfBlock`, `syncStatus`).
 
-- [demo-topic5.md](./demo-topic5.md) — G4 E2E path
-- [hosting.md](./hosting.md) — Atlas → Render → Vercel
-- [security-limitations.md](./security-limitations.md)
+---
+
+## 6. Frontend information architecture
+
+| Route | Audience | Wallet? |
+|---|---|---|
+| `/` | Everyone | No |
+| `/campaigns`, `/campaigns/[id]` | Donors / orgs | Optional / for actions |
+| `/transparency` | Public auditors | No |
+| `/yield` | Orgs / operators (USDC) | For writes |
+| `/governance` | Donors | For voting |
+| `/dashboard` | Connected user | Yes |
+| `/admin` | Admin / verifier roles | Yes |
+| `/expenses/[requestId]` | Public | No |
+
+---
+
+## 7. Security boundaries (summary)
+
+- Value leaving escrow to a **non-donor** address requires DAO approval **and** Safe execution **and** a registered request.  
+- Yield moves are **internal** (liquid ↔ vault) and cannot pay third parties.  
+- Refunds are **pull** (`claimRefund`) for Failed/Cancelled campaigns.  
+- Full caveats: [security-limitations.md](./security-limitations.md)
+
+---
+
+## Related
+
+- [transparent-accounting.md](./transparent-accounting.md)  
+- [fuji-deployment.md](./fuji-deployment.md)  
+- [hosting.md](./hosting.md)  
+- [adr/](./adr/)
